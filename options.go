@@ -9,13 +9,13 @@ import (
 type Option func(*clientConfig)
 
 type clientConfig struct {
-	apiKey        string
-	baseURL       string
-	timeout       time.Duration
-	retries       int
-	retryBackoff  time.Duration
-	httpClient    *http.Client
-	userAgent     string
+	apiKey       string
+	baseURL      string
+	timeout      time.Duration
+	retries      int
+	retryBackoff time.Duration
+	httpClient   *http.Client
+	userAgent    string
 }
 
 // WithAPIKey sets the Tango API key. When omitted, the client reads the

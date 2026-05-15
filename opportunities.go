@@ -9,22 +9,22 @@ import (
 type ListOpportunitiesOptions struct {
 	ListOptions
 
-	Active                  *bool
-	Agency                  string
-	FirstNoticeDateAfter    string
-	FirstNoticeDateBefore   string
-	LastNoticeDateAfter     string
-	LastNoticeDateBefore    string
-	NAICS                   string
-	NoticeType              string
-	Ordering                string
-	PlaceOfPerformance      string
-	PSC                     string
-	ResponseDeadlineAfter   string
-	ResponseDeadlineBefore  string
-	Search                  string
-	SetAside                string
-	SolicitationNumber      string
+	Active                 *bool
+	Agency                 string
+	FirstNoticeDateAfter   string
+	FirstNoticeDateBefore  string
+	LastNoticeDateAfter    string
+	LastNoticeDateBefore   string
+	NAICS                  string
+	NoticeType             string
+	Ordering               string
+	PlaceOfPerformance     string
+	PSC                    string
+	ResponseDeadlineAfter  string
+	ResponseDeadlineBefore string
+	Search                 string
+	SetAside               string
+	SolicitationNumber     string
 
 	Extra map[string]any
 }
@@ -140,20 +140,20 @@ func (c *Client) ListNotices(ctx context.Context, opts *ListNoticesOptions) (*Pa
 type ListForecastsOptions struct {
 	ListOptions
 
-	Agency            string
-	AwardDateAfter    string
-	AwardDateBefore   string
-	FiscalYear        string
-	FiscalYearGte     string
-	FiscalYearLte     string
-	ModifiedAfter     string
-	ModifiedBefore    string
-	NAICSCode         string
-	NAICSStartsWith   string
-	Ordering          string
-	Search            string
-	SourceSystem      string
-	Status            string
+	Agency          string
+	AwardDateAfter  string
+	AwardDateBefore string
+	FiscalYear      string
+	FiscalYearGte   string
+	FiscalYearLte   string
+	ModifiedAfter   string
+	ModifiedBefore  string
+	NAICSCode       string
+	NAICSStartsWith string
+	Ordering        string
+	Search          string
+	SourceSystem    string
+	Status          string
 
 	Extra map[string]any
 }

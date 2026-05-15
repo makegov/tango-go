@@ -50,8 +50,8 @@ func TestListItDashboardFilterMapping(t *testing.T) {
 			notInQS: []string{"search", "agency_code", "cio_rating"},
 		},
 		{
-			name: "extra map",
-			opts: &ListItDashboardOptions{Extra: map[string]any{"tier": "business"}},
+			name:   "extra map",
+			opts:   &ListItDashboardOptions{Extra: map[string]any{"tier": "business"}},
 			wantQS: map[string]string{"tier": "business"},
 		},
 	}

@@ -13,7 +13,7 @@ import (
 // Filters are tier-gated by the API:
 //   - Free:      Search
 //   - Pro:       AgencyCode, TypeOfInvestment, UpdatedTimeAfter,
-//                UpdatedTimeBefore
+//     UpdatedTimeBefore
 //   - Business+: AgencyName, CIORating, CIORatingMax, PerformanceRisk
 //
 // Hitting a gated filter on a lower tier returns a 403.

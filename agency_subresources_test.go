@@ -36,17 +36,17 @@ func TestAgencyContractsOptionsFilterMapping(t *testing.T) {
 				ListOptions: ListOptions{Flat: true},
 				Joiner:      ".",
 			},
-			wantQS:  map[string]string{"flat": "true", "joiner": "."},
+			wantQS: map[string]string{"flat": "true", "joiner": "."},
 		},
 		{
-			name: "joiner not sent when Flat=false",
-			opts: &AgencyContractsOptions{Joiner: "."},
+			name:    "joiner not sent when Flat=false",
+			opts:    &AgencyContractsOptions{Joiner: "."},
 			wantQS:  map[string]string{},
 			notInQS: []string{"joiner"},
 		},
 		{
-			name: "extra map",
-			opts: &AgencyContractsOptions{Extra: map[string]any{"tag": "test"}},
+			name:   "extra map",
+			opts:   &AgencyContractsOptions{Extra: map[string]any{"tag": "test"}},
 			wantQS: map[string]string{"tag": "test"},
 		},
 	}

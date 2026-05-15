@@ -145,9 +145,9 @@ func TestContextCancellationStopsRetry(t *testing.T) {
 
 func TestValidationErrorExtractsDetailFromVariousShapes(t *testing.T) {
 	cases := []struct {
-		name     string
-		body     string
-		wantMsg  string
+		name    string
+		body    string
+		wantMsg string
 	}{
 		{
 			name:    "detail key",
@@ -242,10 +242,10 @@ func Test5xxReturnsAPIErrorAfterExhausted(t *testing.T) {
 
 func TestIsRetryableStatuses(t *testing.T) {
 	cases := []struct {
-		err      error
-		want     bool
+		err  error
+		want bool
 	}{
-		{&APIError{StatusCode: 0}, true},   // network error
+		{&APIError{StatusCode: 0}, true}, // network error
 		{&APIError{StatusCode: 408}, true},
 		{&APIError{StatusCode: 429}, true},
 		{&APIError{StatusCode: 500}, true},

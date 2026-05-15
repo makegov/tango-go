@@ -9,18 +9,18 @@ import (
 type ListEntitiesOptions struct {
 	ListOptions
 
-	Search                       string
-	CageCode                     string
-	NAICS                        string
-	Name                         string
-	PSC                          string
-	PurposeOfRegistrationCode    string
-	Socioeconomic                string
-	State                        string
-	TotalAwardsObligatedGte      string
-	TotalAwardsObligatedLte      string
-	UEI                          string
-	ZipCode                      string
+	Search                    string
+	CageCode                  string
+	NAICS                     string
+	Name                      string
+	PSC                       string
+	PurposeOfRegistrationCode string
+	Socioeconomic             string
+	State                     string
+	TotalAwardsObligatedGte   string
+	TotalAwardsObligatedLte   string
+	UEI                       string
+	ZipCode                   string
 
 	Extra map[string]any
 }
@@ -101,4 +101,3 @@ func (c *Client) IterateEntities(ctx context.Context, opts *ListEntitiesOptions)
 		},
 	}
 }
-

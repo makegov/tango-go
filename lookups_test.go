@@ -21,9 +21,9 @@ func TestListAgenciesFilterMapping(t *testing.T) {
 			notInQS: []string{"page", "limit", "search"},
 		},
 		{
-			name:    "page and limit",
-			opts:    &ListAgenciesOptions{Page: 2, Limit: 10},
-			wantQS:  map[string]string{"page": "2", "limit": "10"},
+			name:   "page and limit",
+			opts:   &ListAgenciesOptions{Page: 2, Limit: 10},
+			wantQS: map[string]string{"page": "2", "limit": "10"},
 		},
 		{
 			name:    "search",
@@ -32,9 +32,9 @@ func TestListAgenciesFilterMapping(t *testing.T) {
 			notInQS: []string{"page"},
 		},
 		{
-			name:    "limit capped at 100",
-			opts:    &ListAgenciesOptions{Limit: 9999},
-			wantQS:  map[string]string{"limit": "100"},
+			name:   "limit capped at 100",
+			opts:   &ListAgenciesOptions{Limit: 9999},
+			wantQS: map[string]string{"limit": "100"},
 		},
 	}
 

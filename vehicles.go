@@ -9,28 +9,28 @@ import (
 type ListVehiclesOptions struct {
 	ListOptions
 
-	Joiner               string
-	Search               string
-	VehicleType          string
-	TypeOfIDC            string
-	ContractType         string
-	SetAside             string
-	WhoCanUse            string
-	NAICSCode            string
-	PSCCode              string
-	ProgramAcronym       string
-	Agency               string
-	OrganizationID       string
-	TotalObligatedMin    string
-	TotalObligatedMax    string
-	IDVCountMin          int
-	IDVCountMax          int
-	OrderCountMin        int
-	OrderCountMax        int
-	FiscalYear           string
-	AwardDateAfter       string
-	AwardDateBefore      string
-	LastDateToOrderAfter string
+	Joiner                string
+	Search                string
+	VehicleType           string
+	TypeOfIDC             string
+	ContractType          string
+	SetAside              string
+	WhoCanUse             string
+	NAICSCode             string
+	PSCCode               string
+	ProgramAcronym        string
+	Agency                string
+	OrganizationID        string
+	TotalObligatedMin     string
+	TotalObligatedMax     string
+	IDVCountMin           int
+	IDVCountMax           int
+	OrderCountMin         int
+	OrderCountMax         int
+	FiscalYear            string
+	AwardDateAfter        string
+	AwardDateBefore       string
+	LastDateToOrderAfter  string
 	LastDateToOrderBefore string
 	// Server enforces a strict ordering allowlist; other values 400.
 	Ordering string

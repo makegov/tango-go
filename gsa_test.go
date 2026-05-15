@@ -48,8 +48,8 @@ func TestListGsaElibraryContractsFilterMapping(t *testing.T) {
 			notInQS: []string{"schedule", "piid", "search"},
 		},
 		{
-			name: "extra map",
-			opts: &ListGsaElibraryContractsOptions{Extra: map[string]any{"active": "true"}},
+			name:   "extra map",
+			opts:   &ListGsaElibraryContractsOptions{Extra: map[string]any{"active": "true"}},
 			wantQS: map[string]string{"active": "true"},
 		},
 	}

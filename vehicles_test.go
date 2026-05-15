@@ -87,8 +87,8 @@ func TestListVehiclesFilterMapping(t *testing.T) {
 			notInQS: []string{"idv_count_min", "order_count_max"},
 		},
 		{
-			name: "extra map",
-			opts: &ListVehiclesOptions{Extra: map[string]any{"version": "v2"}},
+			name:   "extra map",
+			opts:   &ListVehiclesOptions{Extra: map[string]any{"version": "v2"}},
 			wantQS: map[string]string{"version": "v2"},
 		},
 	}
