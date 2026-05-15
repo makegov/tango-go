@@ -1,0 +1,51 @@
+name: Tests
+
+# Go test matrix. Runs on push to main and on all PRs.
+#
+# Note on Go versions: per locked decision D-03 the minimum supported Go
+# version is 1.23. go.mod currently still says `go 1.22` — that bump lands
+# in a follow-up wave. The workflow targets 1.23+ now so the matrix is
+# correct on day one of v1.0.0; "stable" tracks the current Go release
+# (1.24+ when GitHub Actions picks it up).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep this list short and reliable. "stable" auto-tracks the current
+        # release so we don't need to revisit when 1.24 ships.
+        go-version: ["1.23", "stable"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test (race + coverage)
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.go-version }}
+          path: coverage.out
+          if-no-files-found: warn
+          retention-days: 7
