@@ -1,6 +1,7 @@
 # Tango Go SDK
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/makegov/tango-go.svg)](https://pkg.go.dev/github.com/makegov/tango-go)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/makegov/tango-go.svg)](https://pkg.go.dev/github.com/makegov/tango-go)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **In development — v0.1.0.** Not yet at sibling-SDK parity. The public API may shift before v1.0.0. Pin to a specific tag if you depend on this in production.
