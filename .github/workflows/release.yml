@@ -1,0 +1,51 @@
+name: Release
+
+# Tag-driven release.
+# Push a `vX.Y.Z` tag → run tests one last time, create a GitHub Release
+# with auto-generated notes, then ping proxy.golang.org so pkg.go.dev
+# picks the new version up promptly.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
+          check-latest: true
+
+      - name: Sanity test
+        run: go test ./...
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --generate-notes \
+            --notes-start-tag "$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || echo '')" \
+            --verify-tag
+
+      - name: Refresh pkg.go.dev (proxy.golang.org)
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Hitting the module proxy's .info endpoint is the canonical way
+          # to nudge pkg.go.dev into indexing a new tag.
+          curl -fsSL "https://proxy.golang.org/github.com/makegov/tango-go/@v/${TAG}.info" \
+            || echo "proxy.golang.org refresh failed (non-fatal); pkg.go.dev will catch up eventually"
