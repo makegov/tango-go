@@ -211,7 +211,7 @@ func (c *Client) attempt(ctx context.Context, spec requestSpec) ([]byte, error) 
 		}
 		return nil, &APIError{Message: "request failed", Cause: err}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	raw, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {

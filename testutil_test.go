@@ -2,45 +2,15 @@ package tango
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 )
-
-// newTestClientFull builds a client connected to a test server. The
-// caller controls retries, backoff, and timeout via opts.
-func newTestClientFull(t *testing.T, h http.HandlerFunc, retries int, backoff time.Duration, timeout time.Duration) (*Client, *httptest.Server) {
-	t.Helper()
-	srv := httptest.NewServer(h)
-	t.Cleanup(srv.Close)
-	c := NewClient(
-		WithAPIKey("test-key"),
-		WithBaseURL(srv.URL),
-		WithRetries(retries),
-		WithRetryBackoff(backoff),
-		WithTimeout(timeout),
-	)
-	return c, srv
-}
 
 // emptyListHandler returns a minimal valid paginated response with zero results.
 func emptyListHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"count":0,"results":[]}`))
-}
-
-// singleResultHandler returns a single-item paginated response.
-func singleResultHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"count":1,"results":[{"id":"x"}]}`))
-}
-
-// singleRecordHandler returns a bare JSON object (for get-single endpoints).
-func singleRecordHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"id":"rec1","name":"Test"}`))
 }
 
 // assertQueryContains checks that gotURL contains all wantKV pairs and
