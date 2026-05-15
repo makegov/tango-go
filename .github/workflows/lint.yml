@@ -1,0 +1,31 @@
+name: Lint
+
+# golangci-lint via the official action. Uses repo-root .golangci.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  golangci:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # Pin to the project's minimum (matches go.mod). Avoids
+          # golangci-lint v1.x choking on newer stdlib build-tagged files
+          # (e.g. Go 1.26 chacha20poly1305/fips140only_go1.26.go).
+          go-version: "1.23"
+          check-latest: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m

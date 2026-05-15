@@ -1,0 +1,72 @@
+# golangci-lint configuration for github.com/makegov/tango-go.
+#
+# Conservative defaults: enable the high-signal linters, disable the ones
+# that fight a library with intentional package-level shape constants and
+# long-but-readable URLs/error messages.
+
+run:
+  timeout: 5m
+  tests: true
+
+output:
+  formats:
+    - format: colored-line-number
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gofmt
+    - gosimple
+    - govet
+    - ineffassign
+    - revive
+    - staticcheck
+    - unused
+
+linters-settings:
+  gofmt:
+    simplify: true
+  revive:
+    severity: warning
+    # Keep rules conservative — we want signal, not stylistic noise.
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+        arguments:
+          - "checkPrivateReceivers"
+          - "disableStutteringCheck"
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    # Test files frequently use blank identifiers, long lines, and
+    # intentionally unused parameters in table-driven tests.
+    - path: _test\.go
+      linters:
+        - errcheck
+        - revive
