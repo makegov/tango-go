@@ -12,7 +12,7 @@ PKG      ?= ./...
 COVER    ?= coverage.out
 COVERHTML?= coverage.html
 
-.PHONY: all test test-race cover cover-html lint fmt vet tidy integration ci help
+.PHONY: all test test-race cover cover-html lint fmt vet tidy integration ci hooks help
 
 # Default target: `make` runs the fast test suite.
 all: test
@@ -47,6 +47,10 @@ integration: ## Run integration tests (build tag `integration`)
 	$(GO) test -tags=integration ./tests/integration/...
 
 ci: vet test-race cover lint ## Everything CI runs locally
+
+hooks: ## Install pre-commit + pre-push git hooks
+	pre-commit install
+	pre-commit install --hook-type pre-push
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)

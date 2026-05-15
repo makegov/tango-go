@@ -23,6 +23,20 @@ make ci        # vet + race tests + coverage + lint (matches CI)
 
 See `make help` for the full list of targets.
 
+### Git hooks (recommended)
+
+`.pre-commit-config.yaml` ships hooks that mirror what CI runs. To wire them up locally:
+
+```bash
+brew install pre-commit          # or: pip install pre-commit
+make hooks                       # runs pre-commit install + pre-commit install --hook-type pre-push
+```
+
+Once installed:
+
+- **pre-commit:** `gofmt`, `go vet`, end-of-file + trailing-whitespace cleanup (fast).
+- **pre-push:** `golangci-lint` against the whole module (catches what CI catches, before you push).
+
 ### Coverage
 
 ```bash
