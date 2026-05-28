@@ -9,8 +9,11 @@ import (
 type ListEntitiesOptions struct {
 	ListOptions
 
-	Search                    string
-	CageCode                  string
+	Search   string
+	CageCode string
+	// Cage is a distinct API filter from CageCode; the server rejects
+	// setting both — use one or the other.
+	Cage                      string
 	NAICS                     string
 	Name                      string
 	PSC                       string
@@ -33,6 +36,7 @@ func (o *ListEntitiesOptions) toQuery() url.Values {
 	o.ListOptions.applyTo(q)
 	setIfNotEmpty(q, "search", o.Search)
 	setIfNotEmpty(q, "cage_code", o.CageCode)
+	setIfNotEmpty(q, "cage", o.Cage)
 	setIfNotEmpty(q, "naics", o.NAICS)
 	setIfNotEmpty(q, "name", o.Name)
 	setIfNotEmpty(q, "psc", o.PSC)

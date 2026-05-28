@@ -228,17 +228,6 @@ func TestListIDVChildIDVsNilOpts(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ListIDVSummaryAwards nil opts
-// ---------------------------------------------------------------------------
-
-func TestListIDVSummaryAwardsNilOpts(t *testing.T) {
-	var capturedURL string
-	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
-	_, _ = c.ListIDVSummaryAwards(context.Background(), "SOL-001", nil)
-	assertPathContains(t, capturedURL, "/api/idvs/SOL-001/summary/awards/")
-}
-
-// ---------------------------------------------------------------------------
 // ListVehicleOrders nil opts
 // ---------------------------------------------------------------------------
 

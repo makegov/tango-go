@@ -286,3 +286,19 @@ func TestGetVersionBuildsPath(t *testing.T) {
 	_, _ = c.GetVersion(context.Background())
 	assertPathContains(t, capturedURL, "/api/version/")
 }
+
+func TestGetSubawardRequiresKey(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.GetSubaward(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestGetSubawardBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
+	_, _ = c.GetSubaward(context.Background(), "SUB-1", nil)
+	assertPathContains(t, capturedURL, "/api/subawards/SUB-1/")
+}

@@ -25,6 +25,7 @@ func TestListEntitiesFilterMapping(t *testing.T) {
 			opts: &ListEntitiesOptions{
 				Search:                    "Acme",
 				CageCode:                  "1ABC5",
+				Cage:                      "1ABC5",
 				NAICS:                     "541512",
 				Name:                      "Acme Corp",
 				PSC:                       "D302",
@@ -39,6 +40,7 @@ func TestListEntitiesFilterMapping(t *testing.T) {
 			wantQS: map[string]string{
 				"search":                       "Acme",
 				"cage_code":                    "1ABC5",
+				"cage":                         "1ABC5",
 				"naics":                        "541512",
 				"name":                         "Acme Corp",
 				"psc":                          "D302",

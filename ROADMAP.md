@@ -13,6 +13,15 @@ This roadmap tracks the Go SDK only. The goal is to stay closely aligned with th
 - [X] Sub-resource walks for IDVs, entities, agencies, vehicles.
 - [X] OTAs / OTIDVs, GSA eLibrary, IT Dashboard, protests, LCATs.
 
+## 0.2 (API sync to v4.6.9)
+
+- [X] Budget surface: `ListBudgetAccounts` / `IterateBudgetAccounts`, `GetBudgetAccount`, `GetBudgetAccountQuarters`, `GetBudgetAccountRecipients` (`/api/budget/accounts/`).
+- [X] Singleton detail GETs: `GetContract`, `GetOpportunity`, `GetNotice`, `GetForecast`, `GetGrant`, `GetSubaward`.
+- [X] Contract sub-routes: `ListContractSubawards`, `ListContractTransactions`.
+- [X] `GetEntityBudgetFlows` (`/api/entities/{uei}/budget-flows/`).
+- [X] `GrantID` filter on grants; `Cage` filter on entities.
+- [X] Removed fabricated `GetIDVSummary` / `ListIDVSummaryAwards` (paths never existed upstream).
+
 ## Next
 
 - [ ] Comprehensive integration tests against the live Tango API.

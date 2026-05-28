@@ -45,6 +45,22 @@ This project follows [Semantic Versioning](https://semver.org/).
 - New **State & Local (SLED)** section in `docs/API_REFERENCE.md` covering all six methods and both defaults that surprise people.
 - `docs/WEBHOOKS.md` troubleshooting gained the date-lapse rule and its one exception. An exclusion or DIBBS solicitation reaching its date fires nothing, because open/closed is derived at query time — but `alerts.sled_opportunity.match` **does** fire on a closing, since SLED liveness is a stored column a fifteen-minute sweep writes.
 
+@@PR5@@
+Sync to Tango API v4.6.9. Pre-1.0 (SemVer 0.x): the removals below are breaking but ship without a deprecation cycle.
+
+### Added
+
+- **Budget surface** (`budget.go`): `ListBudgetAccounts` / `IterateBudgetAccounts` (`GET /api/budget/accounts/`), `GetBudgetAccount` (`GET /api/budget/accounts/{id}/`), `GetBudgetAccountQuarters` (`GET /api/budget/accounts/{id}/quarters/`), `GetBudgetAccountRecipients` (`GET /api/budget/accounts/{id}/recipients/`). New `ListBudgetAccountsOptions` and `ShapeBudgetAccountsMinimal` shape constant.
+- Singleton detail GETs: `GetContract` (`GET /api/contracts/{key}/`), `GetOpportunity`, `GetNotice`, `GetForecast`, `GetGrant`, `GetSubaward`.
+- Contract sub-routes: `ListContractSubawards` (`GET /api/contracts/{key}/subawards/`), `ListContractTransactions` (`GET /api/contracts/{key}/transactions/`).
+- `GetEntityBudgetFlows` (`GET /api/entities/{uei}/budget-flows/`).
+- `GrantID` typed filter on `ListGrantsOptions`.
+- `Cage` typed filter on `ListEntitiesOptions` (distinct from the existing `CageCode`; the server rejects setting both).
+
+### Removed
+
+- **Breaking**: `GetIDVSummary` and `ListIDVSummaryAwards`. These hit `/api/idvs/{id}/summary/` and `/api/idvs/{id}/summary/awards/`, which have never existed in the Tango API (the server returns 404). Use `GetIDV` with a richer shape and `ListIDVAwards` respectively.
+
 ## [0.1.0] - 2026-05-15
 
 First public release of the Tango Go SDK.

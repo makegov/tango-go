@@ -79,38 +79,6 @@ func TestListIDVTransactionsWithPagination(t *testing.T) {
 	}, nil)
 }
 
-func TestGetIDVSummaryRequiresIdentifier(t *testing.T) {
-	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
-	_, err := c.GetIDVSummary(context.Background(), "")
-	var ve *ValidationError
-	if !errors.As(err, &ve) {
-		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
-	}
-}
-
-func TestGetIDVSummaryBuildsPath(t *testing.T) {
-	var capturedURL string
-	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
-	_, _ = c.GetIDVSummary(context.Background(), "SOL-001")
-	assertPathContains(t, capturedURL, "/api/idvs/SOL-001/summary/")
-}
-
-func TestListIDVSummaryAwardsRequiresIdentifier(t *testing.T) {
-	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
-	_, err := c.ListIDVSummaryAwards(context.Background(), "", nil)
-	var ve *ValidationError
-	if !errors.As(err, &ve) {
-		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
-	}
-}
-
-func TestListIDVSummaryAwardsBuildsPath(t *testing.T) {
-	var capturedURL string
-	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
-	_, _ = c.ListIDVSummaryAwards(context.Background(), "SOL-001", nil)
-	assertPathContains(t, capturedURL, "/api/idvs/SOL-001/summary/awards/")
-}
-
 func TestListIDVLcatsRequiresKey(t *testing.T) {
 	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
 	_, err := c.ListIDVLcats(context.Background(), "", nil)

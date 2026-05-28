@@ -3,10 +3,9 @@ name: Tests
 # Go test matrix. Runs on push to main and on all PRs.
 #
 # Note on Go versions: per locked decision D-03 the minimum supported Go
-# version is 1.23. go.mod currently still says `go 1.22` — that bump lands
-# in a follow-up wave. The workflow targets 1.23+ now so the matrix is
-# correct on day one of v1.0.0; "stable" tracks the current Go release
-# (1.24+ when GitHub Actions picks it up).
+# version is 1.23, which matches `go 1.23` in go.mod. The workflow targets
+# 1.23+ now so the matrix is correct on day one of v1.0.0; "stable" tracks
+# the current Go release (1.24+ when GitHub Actions picks it up).
 
 on:
   push:

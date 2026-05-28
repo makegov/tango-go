@@ -169,6 +169,43 @@ func (c *Client) IterateContracts(ctx context.Context, opts *ListContractsOption
 	}
 }
 
+// GetContract fetches a single federal contract record by its key
+// (/api/contracts/{key}/).
+func (c *Client) GetContract(ctx context.Context, key string, opts *ListOptions) (Record, error) {
+	if key == "" {
+		return nil, &ValidationError{&APIError{Message: "contract key is required"}}
+	}
+	q := url.Values{}
+	opts.applyTo(q)
+	return getGeneric[Record](ctx, c, "/api/contracts/"+pathEscape(key)+"/", q)
+}
+
+// ListContractSubawards lists subawards reported against a single prime
+// contract (/api/contracts/{key}/subawards/).
+func (c *Client) ListContractSubawards(ctx context.Context, key string, opts *EntitySubresourceOptions) (*PaginatedResponse[Record], error) {
+	if key == "" {
+		return nil, &ValidationError{&APIError{Message: "contract key is required"}}
+	}
+	q := url.Values{}
+	if opts != nil {
+		q = opts.toQuery()
+	}
+	return listGeneric[Record](ctx, c, "/api/contracts/"+pathEscape(key)+"/subawards/", q)
+}
+
+// ListContractTransactions lists the raw transaction history backing a single
+// contract (/api/contracts/{key}/transactions/).
+func (c *Client) ListContractTransactions(ctx context.Context, key string, opts *EntitySubresourceOptions) (*PaginatedResponse[Record], error) {
+	if key == "" {
+		return nil, &ValidationError{&APIError{Message: "contract key is required"}}
+	}
+	q := url.Values{}
+	if opts != nil {
+		q = opts.toQuery()
+	}
+	return listGeneric[Record](ctx, c, "/api/contracts/"+pathEscape(key)+"/transactions/", q)
+}
+
 func valueToString(v any) string {
 	switch t := v.(type) {
 	case string:

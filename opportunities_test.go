@@ -2,6 +2,7 @@ package tango
 
 import (
 	"context"
+	"errors"
 	"testing"
 )
 
@@ -219,6 +220,7 @@ func TestListGrantsFilterMapping(t *testing.T) {
 				Agency:             "9700",
 				ApplicantTypes:     "11",
 				CFDANumber:         "10.001",
+				GrantID:            "GRANT-123",
 				FundingCategories:  "AR",
 				FundingInstruments: "G",
 				OpportunityNumber:  "OPP-001",
@@ -234,6 +236,7 @@ func TestListGrantsFilterMapping(t *testing.T) {
 				"agency":               "9700",
 				"applicant_types":      "11",
 				"cfda_number":          "10.001",
+				"grant_id":             "GRANT-123",
 				"funding_categories":   "AR",
 				"funding_instruments":  "G",
 				"opportunity_number":   "OPP-001",
@@ -288,4 +291,68 @@ func TestIterateGrantsNilOpts(t *testing.T) {
 	if it == nil {
 		t.Fatal("expected non-nil iterator")
 	}
+}
+
+func TestGetOpportunityRequiresID(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.GetOpportunity(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestGetOpportunityBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
+	_, _ = c.GetOpportunity(context.Background(), "OPP-1", nil)
+	assertPathContains(t, capturedURL, "/api/opportunities/OPP-1/")
+}
+
+func TestGetNoticeRequiresID(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.GetNotice(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestGetNoticeBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
+	_, _ = c.GetNotice(context.Background(), "NOT-1", nil)
+	assertPathContains(t, capturedURL, "/api/notices/NOT-1/")
+}
+
+func TestGetForecastRequiresID(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.GetForecast(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestGetForecastBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
+	_, _ = c.GetForecast(context.Background(), "FC-1", nil)
+	assertPathContains(t, capturedURL, "/api/forecasts/FC-1/")
+}
+
+func TestGetGrantRequiresID(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.GetGrant(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestGetGrantBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
+	_, _ = c.GetGrant(context.Background(), "GR-1", nil)
+	assertPathContains(t, capturedURL, "/api/grants/GR-1/")
 }

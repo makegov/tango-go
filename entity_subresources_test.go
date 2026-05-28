@@ -158,6 +158,22 @@ func TestListEntityLcatsBuildsPath(t *testing.T) {
 	assertPathContains(t, capturedURL, "/api/entities/UEI12345/lcats/")
 }
 
+func TestGetEntityBudgetFlowsRequiresUEI(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.GetEntityBudgetFlows(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestGetEntityBudgetFlowsBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.GetEntityBudgetFlows(context.Background(), "UEI12345", nil)
+	assertPathContains(t, capturedURL, "/api/entities/UEI12345/budget-flows/")
+}
+
 func TestEntityLcatsOptionsFilterMapping(t *testing.T) {
 	var capturedURL string
 	c, _ := newTestClient(t, captureURLHandler(&capturedURL))

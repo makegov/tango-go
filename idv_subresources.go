@@ -46,36 +46,6 @@ func (c *Client) ListIDVTransactions(ctx context.Context, key string, opts *List
 	return listGeneric[Record](ctx, c, "/api/idvs/"+pathEscape(key)+"/transactions/", q)
 }
 
-// GetIDVSummary fetches the summary roll-up for an IDV by its
-// solicitation identifier (/api/idvs/{identifier}/summary/).
-//
-// Deprecated: the v1.0.0 server returns 404 for this endpoint per the
-// upstream Node SDK CHANGELOG. The method is retained for parity; callers
-// should migrate to GetIDV with a richer shape.
-func (c *Client) GetIDVSummary(ctx context.Context, identifier string) (Record, error) {
-	if identifier == "" {
-		return nil, &ValidationError{&APIError{Message: "IDV solicitation identifier is required"}}
-	}
-	return getGeneric[Record](ctx, c, "/api/idvs/"+pathEscape(identifier)+"/summary/", nil)
-}
-
-// ListIDVSummaryAwards lists awards belonging to an IDV summary
-// (/api/idvs/{identifier}/summary/awards/).
-//
-// Deprecated: the v1.0.0 server returns 404 for this endpoint per the
-// upstream Node SDK CHANGELOG. The method is retained for parity; callers
-// should migrate to ListIDVAwards.
-func (c *Client) ListIDVSummaryAwards(ctx context.Context, identifier string, opts *ListOptions) (*PaginatedResponse[Record], error) {
-	if identifier == "" {
-		return nil, &ValidationError{&APIError{Message: "IDV solicitation identifier is required"}}
-	}
-	q := url.Values{}
-	if opts != nil {
-		opts.applyTo(q)
-	}
-	return listGeneric[Record](ctx, c, "/api/idvs/"+pathEscape(identifier)+"/summary/awards/", q)
-}
-
 // ListIDVLcats lists Labor Categories (LCATs) under an IDV
 // (/api/idvs/{key}/lcats/). Re-uses EntityLcatsOptions because the server
 // accepts the same parameter shape on both /entities/{uei}/lcats/ and
