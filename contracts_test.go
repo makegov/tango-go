@@ -242,6 +242,54 @@ func TestListContractsAwardType(t *testing.T) {
 	assertQueryContains(t, capturedURL, map[string]string{"award_type": "A"}, nil)
 }
 
+func TestGetContractRequiresKey(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.GetContract(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestGetContractBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
+	_, _ = c.GetContract(context.Background(), "KEY-1", nil)
+	assertPathContains(t, capturedURL, "/api/contracts/KEY-1/")
+}
+
+func TestListContractSubawardsRequiresKey(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.ListContractSubawards(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestListContractSubawardsBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListContractSubawards(context.Background(), "KEY-1", nil)
+	assertPathContains(t, capturedURL, "/api/contracts/KEY-1/subawards/")
+}
+
+func TestListContractTransactionsRequiresKey(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.ListContractTransactions(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestListContractTransactionsBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListContractTransactions(context.Background(), "KEY-1", nil)
+	assertPathContains(t, capturedURL, "/api/contracts/KEY-1/transactions/")
+}
+
 func TestListContractsServerError(t *testing.T) {
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)

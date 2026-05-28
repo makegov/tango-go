@@ -164,3 +164,10 @@ func (c *Client) ListEntityLcats(ctx context.Context, uei string, opts *EntityLc
 	}
 	return listGeneric[Record](ctx, c, "/api/entities/"+pathEscape(uei)+"/lcats/", q)
 }
+
+// GetEntityBudgetFlows lists funding-account budget flows attributed to an
+// entity (/api/entities/{uei}/budget-flows/). Returns a paginated list of
+// funding-account rows.
+func (c *Client) GetEntityBudgetFlows(ctx context.Context, uei string, opts *EntitySubresourceOptions) (*PaginatedResponse[Record], error) {
+	return c.listEntitySubresource(ctx, uei, "budget-flows", opts)
+}

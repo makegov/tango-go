@@ -200,6 +200,7 @@ type ListGrantsOptions struct {
 	Agency             string
 	ApplicantTypes     string
 	CFDANumber         string
+	GrantID            string
 	FundingCategories  string
 	FundingInstruments string
 	OpportunityNumber  string
@@ -223,6 +224,7 @@ func (o *ListGrantsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "agency", o.Agency)
 	setIfNotEmpty(q, "applicant_types", o.ApplicantTypes)
 	setIfNotEmpty(q, "cfda_number", o.CFDANumber)
+	setIfNotEmpty(q, "grant_id", o.GrantID)
 	setIfNotEmpty(q, "funding_categories", o.FundingCategories)
 	setIfNotEmpty(q, "funding_instruments", o.FundingInstruments)
 	setIfNotEmpty(q, "opportunity_number", o.OpportunityNumber)
@@ -294,4 +296,48 @@ func (c *Client) IterateGrants(ctx context.Context, opts *ListGrantsOptions) *It
 			return c.ListGrants(ctx, &next)
 		},
 	}
+}
+
+// GetOpportunity fetches a single opportunity by its identifier
+// (/api/opportunities/{opportunity_id}/).
+func (c *Client) GetOpportunity(ctx context.Context, opportunityID string, opts *ListOptions) (Record, error) {
+	if opportunityID == "" {
+		return nil, &ValidationError{&APIError{Message: "opportunity_id is required"}}
+	}
+	q := url.Values{}
+	opts.applyTo(q)
+	return getGeneric[Record](ctx, c, "/api/opportunities/"+pathEscape(opportunityID)+"/", q)
+}
+
+// GetNotice fetches a single notice by its identifier
+// (/api/notices/{notice_id}/).
+func (c *Client) GetNotice(ctx context.Context, noticeID string, opts *ListOptions) (Record, error) {
+	if noticeID == "" {
+		return nil, &ValidationError{&APIError{Message: "notice_id is required"}}
+	}
+	q := url.Values{}
+	opts.applyTo(q)
+	return getGeneric[Record](ctx, c, "/api/notices/"+pathEscape(noticeID)+"/", q)
+}
+
+// GetForecast fetches a single procurement forecast by its identifier
+// (/api/forecasts/{id}/).
+func (c *Client) GetForecast(ctx context.Context, id string, opts *ListOptions) (Record, error) {
+	if id == "" {
+		return nil, &ValidationError{&APIError{Message: "forecast id is required"}}
+	}
+	q := url.Values{}
+	opts.applyTo(q)
+	return getGeneric[Record](ctx, c, "/api/forecasts/"+pathEscape(id)+"/", q)
+}
+
+// GetGrant fetches a single grant opportunity by its identifier
+// (/api/grants/{grant_id}/).
+func (c *Client) GetGrant(ctx context.Context, grantID string, opts *ListOptions) (Record, error) {
+	if grantID == "" {
+		return nil, &ValidationError{&APIError{Message: "grant_id is required"}}
+	}
+	q := url.Values{}
+	opts.applyTo(q)
+	return getGeneric[Record](ctx, c, "/api/grants/"+pathEscape(grantID)+"/", q)
 }
