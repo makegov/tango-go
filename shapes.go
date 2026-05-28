@@ -10,6 +10,10 @@ const (
 	// ShapeContractsMinimal — default for ListContracts.
 	ShapeContractsMinimal = "key,piid,award_date,recipient(display_name),description,total_contract_value"
 
+	// ShapeBudgetAccountsMinimal — default for ListBudgetAccounts.
+	ShapeBudgetAccountsMinimal = "federal_account_symbol,fiscal_year,agency_name,enacted_ba," +
+		"obligated_total,contract_obligated,contract_share_of_obligated_capped"
+
 	// ShapeEntitiesMinimal — default for ListEntities.
 	ShapeEntitiesMinimal = "uei,legal_business_name,cage_code,business_types"
 

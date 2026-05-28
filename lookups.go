@@ -166,6 +166,17 @@ func (c *Client) ListSubawards(ctx context.Context, opts *ListSubawardsOptions) 
 	return listGeneric[Record](ctx, c, "/api/subawards/", q)
 }
 
+// GetSubaward fetches a single subaward record by its key
+// (/api/subawards/{key}/).
+func (c *Client) GetSubaward(ctx context.Context, key string, opts *ListOptions) (Record, error) {
+	if key == "" {
+		return nil, &ValidationError{&APIError{Message: "subaward key is required"}}
+	}
+	q := url.Values{}
+	opts.applyTo(q)
+	return getGeneric[Record](ctx, c, "/api/subawards/"+pathEscape(key)+"/", q)
+}
+
 // GetVersion returns the API version metadata.
 func (c *Client) GetVersion(ctx context.Context) (Record, error) {
 	return getGeneric[Record](ctx, c, "/api/version/", nil)
