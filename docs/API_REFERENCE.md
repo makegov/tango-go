@@ -23,6 +23,7 @@ client := tango.NewClient(tango.WithAPIKey(os.Getenv("TANGO_API_KEY")))
 - [Entities](#entities) (+ sub-resources)
 - [Opportunities / Notices / Forecasts / Grants](#opportunities--notices--forecasts--grants)
 - [Protests](#protests)
+- [State \& Local (SLED)](#state--local-sled)
 - [IT Dashboard](#it-dashboard)
 - [GSA eLibrary](#gsa-elibrary)
 - [LCATs](#lcats)
@@ -384,6 +385,70 @@ res, err := client.SearchOpportunityAttachments(ctx, tango.SearchOpportunityAtta
 > **Typed return.** Returns `*ProtestRecord` with named fields (`CaseID`, `CaseNumber`, `SourceSystem`, `Outcome`, `CaseType`, `FiledDate`, `DecisionDate`, `Agency`, `Protester`, `ResolvedAgency`, `ResolvedProtester`, `Docket []map[string]any`, `Extra map[string]any`).
 
 Use `shape: "...,docket(...)"` to include the nested docket entries.
+
+---
+
+## State & Local (SLED)
+
+**Beta.** State, local and education procurement — solicitations that never appear on SAM.gov because they were never federal. Coverage is partial and grows one jurisdiction at a time.
+
+This data does not join to the federal data: no UEI, no PIID, no agency-hierarchy key and no NAICS/PSC crosswalk. The `organization(*)` expand here is three strings, not the federal 7-key office payload.
+
+### `ListSledOpportunities(ctx, *ListSledOpportunitiesOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/sled/opportunities/`. Filters: `State`, `Jurisdiction`, `Status`, `Active`, `Agency`, `SolicitationNumber`, `SolicitationType`, `HasDocuments`, `RevisionKind`, `Naics`, `Nigp`, `Unspsc`, `Category`, `CategoryCode`, `Posted[After/Before]`, `ResponseDeadline[After/Before]`, `FirstSeen[After/Before]`, `ChangeSeenAfter`, `Modified[After/Before]`, `Platform`, `NativeID`, `ExternalID`, `Search`, `Ordering`.
+
+> **Leaving both `Status` and `Active` unset returns open solicitations only.** Only about a fifth of the corpus is open, and a portal drops a closed solicitation rather than restating it, so the API defaults the list to `status=open`. Set `Status` explicitly to page the whole corpus; `Status: "open|unknown"` also reaches the standing rosters and dateless RFIs that `unknown` covers. `GetSledOpportunity` returns a solicitation whatever its status.
+>
+> This method deliberately does not synthesize `status=open` client-side: doing so would make `Active: boolPtr(false)` unreachable, since `active=false` is the complement of open rather than an independent value.
+
+> **`Status` is Tango's answer, not the portal's.** It is derived from the portal's word, the deadline and the clock, and refreshed every fifteen minutes. The portal's own word is served as `source_status`, is frozen at last capture, and is **not** filterable — most of what it calls open already has a passed deadline.
+
+`Active` and `HasDocuments` are `*bool` so that `false` is a real filter value rather than an absent one. Use `Extra` for anything the struct does not name (e.g. `verbose`).
+
+`Search` is ranked over title, agency, identifiers, category labels and description, widened by the solicitations whose *attachment text* matched. A row that matched on its description gains a `snippet` with the matching passage; a title-or-agency match carries none. Attachment matching contributes ids only.
+
+`category_codes` scheme tagging is mid-migration, so **`Naics` matches only the small tagged share**. Use `CategoryCode` to match a code under any scheme, including the untagged pre-migration strings.
+
+### `IterateSledOpportunities(ctx, *ListSledOpportunitiesOptions) *Iterator[Record]`
+
+### `GetSledOpportunity(ctx, opportunityID string, *GetEntityOptions) (Record, error)`
+
+`GET /api/sled/opportunities/{opportunityID}/`. Returns the solicitation whatever its status.
+
+> **`meta.attachment_count` can be lower than `len(attachments)`.** Some portals auto-generate a cover sheet alongside the real documents; it is listed and flagged `is_generated_summary`, but excluded from the count and from `has_documents`. The count answers "does this record hold its solicitation package"; the array answers "what files exist".
+
+Attachment bodies are never served as a field. `size_bytes` and `char_count` only mean something as a pair — 3 MB that yielded no characters is a scan awaiting OCR. `raw(*)` needs a Small plan or above and is explicitly unstable: its shape varies by portal platform.
+
+### `ListSledOpportunityRevisions(ctx, opportunityID string, *ListSledOpportunityRevisionsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/sled/opportunities/{opportunityID}/revisions/`. Filters: `Kind`, `SourceDeclared`, `Observed[After/Before]`.
+
+> **`observed_at` is the scrape that saw the change, not the date the agency made it.** No state portal emits amendment notices, so `kind` is Tango's inference from the diff on about 95% of revisions, resolution is that state's crawl cadence, and history starts when Tango began reading the jurisdiction rather than when the solicitation was posted.
+
+Unlike the `revisions(*)` expand, this route serves `enrichment` rows — Tango's own detail fetch filling in coverage rather than an agency amendment. Pass `Kind: "enrichment"` for only those. `changes` (the per-field before and after) needs a Small plan, which is why `ShapeSledRevisionsMinimal` omits it; `changed_fields` is in that shape and available at every plan.
+
+### `GetSledCoverage(ctx) (Record, error)`
+
+`GET /api/sled/opportunities/coverage/`. Takes no parameters; neither shaped nor paginated.
+
+> **Call this before treating a per-state count as market size.** A thin result for a state is at least as likely to be a portal Tango does not read as a quiet market, and that is the ambiguity this endpoint exists to resolve.
+
+Returns corpus totals plus one row per jurisdiction — the total, the count in each of the five statuses, the jurisdiction levels present, and when a solicitation there last changed. Every state row carries all five status buckets whether or not they have rows, so a total and two buckets never invite subtraction.
+
+### `ListSledForecasts(ctx, *ListSledForecastsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/sled/forecasts/`. Filters: `State`, `Agency`, `ProcurementCategory`, `ProcurementMethod`, `ContractNumber`, `IncumbentName`, `Advertisement[After/Before]`, `FirstSeen[After/Before]`, `Modified[After/Before]`, `Search`, `Ordering`.
+
+> **No liveness at all.** A forecast has no deadline to have passed, so there is no `Status` field, no `Active` field, and no open-only default. Currency is the caller's call from `estimated_advertisement_date`, which is the **start of the published quarter** rather than a posting date — `estimated_advertisement_raw` keeps the portal's own words, and a large share of rows publish no quarter at all.
+
+`estimated_value(min,max,raw)` is parsed from a free-text award band at serve time. A band naming one number is a floor, so `max` is null — never read a missing `max` as an unbounded ceiling. `incumbent_name` is published text, not a resolved Tango entity.
+
+### `IterateSledForecasts(ctx, *ListSledForecastsOptions) *Iterator[Record]`
+
+### `GetSledForecast(ctx, forecastID string, *GetEntityOptions) (Record, error)`
+
+`GET /api/sled/forecasts/{forecastID}/`.
 
 ---
 

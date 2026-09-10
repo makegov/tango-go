@@ -94,4 +94,41 @@ const (
 	ShapeItdashboardInvestmentsComprehensive = "uii,agency_code,agency_name,bureau_code,bureau_name," +
 		"investment_title,type_of_investment,part_of_it_portfolio," +
 		"updated_time,url"
+
+	// ShapeSledOpportunitiesMinimal — suggested list shape for
+	// ListSledOpportunities. `description` is detail-only on the API (median
+	// ~550 chars, tail past 120k), so it is deliberately absent.
+	ShapeSledOpportunitiesMinimal = "opportunity_id,solicitation_number,solicitation_type,title,state," +
+		"jurisdiction,agency,status,status_reason,posted_date,response_deadline," +
+		"source_url,has_documents,first_seen_at,last_change_seen_at"
+
+	// ShapeSledOpportunitiesComprehensive — suggested detail shape for
+	// GetSledOpportunity.
+	ShapeSledOpportunitiesComprehensive = "opportunity_id,solicitation_number,solicitation_type," +
+		"solicitation_type_source,title,description,state,jurisdiction,agency," +
+		"status,status_reason,status_computed_at,source_status,source_url," +
+		"posted_date,response_deadline,response_deadline_original," +
+		"bid_opening_date,bid_opening_raw,category_codes,has_documents," +
+		"first_seen_at,last_seen_at,last_change_seen_at," +
+		"organization(*),contact(*),meta(*),attachments(*),revisions(*)"
+
+	// ShapeSledRevisionsMinimal — suggested shape for
+	// ListSledOpportunityRevisions. `changes` is omitted because the per-field
+	// before/after needs a Small plan; name it explicitly when the caller has
+	// one. `changed_fields` is available at every plan.
+	ShapeSledRevisionsMinimal = "observed_at,sequence,kind,changed_fields,source_declared"
+
+	// ShapeSledForecastsMinimal — suggested list shape for ListSledForecasts.
+	ShapeSledForecastsMinimal = "forecast_id,state,agency,title,estimated_advertisement_date," +
+		"estimated_advertisement_raw,procurement_category,procurement_method," +
+		"contract_number,incumbent_name,source_url,estimated_value(*)"
+
+	// ShapeSledForecastsComprehensive — suggested detail shape for
+	// GetSledForecast.
+	ShapeSledForecastsComprehensive = "forecast_id,state,agency,title,description," +
+		"estimated_advertisement_date,estimated_advertisement_raw," +
+		"procurement_category,procurement_method,contract_term,contract_number," +
+		"incumbent_name,mbe_dbe_goal,delivery_location,source_url,source_status," +
+		"has_documents,first_seen_at,last_seen_at," +
+		"organization(*),contact(*),estimated_value(*)"
 )

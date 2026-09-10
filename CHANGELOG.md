@@ -5,6 +5,23 @@ All notable changes to `github.com/makegov/tango-go` will be documented in this 
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **State, local and education (SLED) procurement** (Tango API 4.25.0; parity with tango-python and tango-node). `ListSledOpportunities` / `GetSledOpportunity`, `ListSledOpportunityRevisions`, `GetSledCoverage`, `ListSledForecasts` / `GetSledForecast`, plus `IterateSledOpportunities` and `IterateSledForecasts`. Three options structs cover every one of the API's 27 solicitation filters and 13 forecast filters as a named field, and five `Shape*` presets land in `shapes.go`.
+
+  Four behaviors are documented on the options structs because each misleads a caller who assumes federal semantics. **Leaving both `Status` and `Active` unset returns open solicitations only** — that default is the API's, and `ListSledOpportunities` deliberately does not synthesize `status=open`, since doing so would make `Active: boolPtr(false)` unreachable (pinned by a test). **`Status` is Tango-derived and refreshed every fifteen minutes**; the portal's own word is served as `source_status`, is frozen at last capture, and is not a liveness filter. **Category scheme tagging is mid-migration**, so `Naics` matches only the small tagged share and `CategoryCode` is the escape hatch. And **`meta.attachment_count` can be lower than `len(attachments)`**, because an auto-generated portal cover sheet is listed and flagged `is_generated_summary` but excluded from the count.
+
+  `Active`, `HasDocuments` and `SourceDeclared` are `*bool` rather than `bool`, so `false` reaches the server as a filter value instead of vanishing into the zero value — the same reason `setIfNotNilBool` exists.
+
+  `ShapeSledRevisionsMinimal` omits `changes` on purpose: the per-field before/after needs a Small plan, so naming it in a suggested shape would 403 a Free caller. `changed_fields` is in the shape and available at every plan.
+
+### Documentation
+
+- New **State & Local (SLED)** section in `docs/API_REFERENCE.md` covering all six methods and both defaults that surprise people.
+- `docs/WEBHOOKS.md` troubleshooting gained the date-lapse rule and its one exception. An exclusion or DIBBS solicitation reaching its date fires nothing, because open/closed is derived at query time — but `alerts.sled_opportunity.match` **does** fire on a closing, since SLED liveness is a stored column a fifteen-minute sweep writes.
+
 ## [0.1.0] - 2026-05-15
 
 First public release of the Tango Go SDK.

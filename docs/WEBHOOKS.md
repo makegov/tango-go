@@ -372,6 +372,10 @@ func TestHandler(t *testing.T) {
 
 **`CreateWebhookAlert` returns `*ValidationError` with "query_type is required".** `QueryType` is singular — `"contract"`, not `"contracts"`. The SDK passes the value through; the server enforces.
 
+**An alert never fires when a record just reaches its date — except `sled_opportunity`.** An exclusion passing its termination date, or a DIBBS solicitation passing its close date, emits nothing: open/closed and in-force are derived at query time, so no stored row changes. Poll instead if you need to observe expiry.
+
+`sled_opportunity` is the one exception. A state solicitation's liveness is a stored `status` column Tango recomputes every fifteen minutes rather than deriving per request, so a deadline passing **is** a write and `alerts.sled_opportunity.match` can follow it. There is no `sled_forecast` query type — a forecast has no deadline, so nothing transitions — and SLED revisions and attachments are not separately alertable: subscribe to `sled_opportunity` and filter on `change_seen_after` or `revision_kind`.
+
 **`TestWebhookEndpoint` returns `result.Success: false`.** Tango reached your endpoint but got a non-2xx back. Inspect `*result.StatusCode` and `*result.ResponseBody` — your handler probably 500'd. Don't forget that `Middleware` returns 401 if the signature doesn't verify, which `TestWebhookEndpoint` will surface as `Success: false` with `StatusCode: 401`.
 
 **`GetWebhookSamplePayload` returns 401 / `*AuthError`.** The sample-payload endpoint requires authentication. Set `TANGO_API_KEY` or pass `tango.WithAPIKey(...)` to `NewClient`.
