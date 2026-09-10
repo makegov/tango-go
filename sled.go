@@ -181,7 +181,7 @@ func (o *ListSledOpportunitiesOptions) toQuery() url.Values {
 	return q
 }
 
-// ListSledOpportunitiesRevisionOptions filters the nested
+// ListSledOpportunityRevisionsOptions filters the nested
 // /api/sled/opportunities/{opportunity_id}/revisions/ route.
 type ListSledOpportunityRevisionsOptions struct {
 	ListOptions
