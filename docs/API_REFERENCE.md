@@ -418,7 +418,17 @@ This data does not join to the federal data: no UEI, no PIID, no agency-hierarch
 
 > **`meta.attachment_count` can be lower than `len(attachments)`.** Some portals auto-generate a cover sheet alongside the real documents; it is listed and flagged `is_generated_summary`, but excluded from the count and from `has_documents`. The count answers "does this record hold its solicitation package"; the array answers "what files exist".
 
-Attachment bodies are never served as a field. `size_bytes` and `char_count` only mean something as a pair — 3 MB that yielded no characters is a scan awaiting OCR. `raw(*)` needs a Small plan or above and is explicitly unstable: its shape varies by portal platform.
+`size_bytes` and `char_count` only mean something as a pair — 3 MB that yielded no characters is a scan awaiting OCR. `raw(*)` needs a Small plan or above and is explicitly unstable: its shape varies by portal platform.
+
+> **The document body is `attachments(extracted_text)`, on a Small plan or above** (API 4.25.1+). It must be **named** — no `Shape*` preset includes it and `attachments(*)` does not carry it, because the API resolves the body only for a caller who asked. Its key is **absent rather than null** whenever the text is not being served: below Small (withheld and named in `meta.upgrade_hints`), on a contested document, or where it could not be resolved. A **contested document never returns text at any plan**, because its stored bytes disagree with what the record advertised.
+>
+> Searching document text and reading it are separate: `Search` matches inside attachment text on every plan and returns no fragment of it.
+
+```go
+row, err := client.GetSledOpportunity(ctx, id, &tango.GetEntityOptions{
+    Shape: "opportunity_id,attachments(name,size_bytes,extracted_text)",
+})
+```
 
 ### `ListSledOpportunityRevisions(ctx, opportunityID string, *ListSledOpportunityRevisionsOptions) (*PaginatedResponse[Record], error)`
 

@@ -214,6 +214,19 @@ func TestSledRevisionsShapeOmitsPlanGatedChanges(t *testing.T) {
 	}
 }
 
+// The API resolves the document body only for a caller who names it, so a
+// suggested shape naming it would make every detail fetch pay for it.
+func TestSledShapesDoNotNameThePaidDocumentBody(t *testing.T) {
+	for name, shape := range map[string]string{
+		"ShapeSledOpportunitiesMinimal":       ShapeSledOpportunitiesMinimal,
+		"ShapeSledOpportunitiesComprehensive": ShapeSledOpportunitiesComprehensive,
+	} {
+		if strings.Contains(shape, "extracted_text") {
+			t.Errorf("%s must not name the Small-gated extracted_text leaf: %q", name, shape)
+		}
+	}
+}
+
 func TestGetSledCoverage(t *testing.T) {
 	var capturedURL string
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {

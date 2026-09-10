@@ -342,6 +342,18 @@ func (c *Client) IterateSledOpportunities(ctx context.Context, opts *ListSledOpp
 
 // GetSledOpportunity fetches one solicitation by opportunity_id, whatever its
 // status. The open-only default applies to the list endpoint, not here.
+//
+// A document's body is available as the attachments(extracted_text) leaf on a
+// Small plan or above, from API version 4.25.1. It must be NAMED — no suggested
+// shape includes it and attachments(*) does not carry it — and its key is ABSENT
+// rather than null whenever the text is not being served: below Small (where it
+// is withheld and named in meta.upgrade_hints), on a contested document, or
+// where it could not be resolved. A contested document never returns text at any
+// plan, because its stored bytes disagree with what the record advertised.
+//
+// Searching document text and reading it are separate. Search matches inside
+// attachment text on every plan and returns no fragment of it; the body is a
+// per-record read.
 func (c *Client) GetSledOpportunity(ctx context.Context, opportunityID string, opts *GetEntityOptions) (Record, error) {
 	if opportunityID == "" {
 		return nil, &ValidationError{&APIError{Message: "sled opportunity_id is required"}}
