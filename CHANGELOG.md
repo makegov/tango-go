@@ -9,6 +9,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Contract Disputes Act appeal decisions** (Tango API 4.26.0). `ListContractAppeals` / `GetContractAppeal` / `IterateContractAppeals` cover `/api/contract_appeals/` — decisions from the Civilian Board of Contract Appeals (CBCA) and the Armed Services Board of Contract Appeals (ASBCA). `ListContractAppealsOptions` names every filter the endpoint accepts (`Board`, `Docket`, `Appellant`, `Judge`, `DecisionType`, `DecisionDate[After/Before]`, `Listed`, `DocumentID`, `Search`, `Ordering`), and two `Shape*` presets land in `shapes.go`.
+
+  **These are not bid protests.** An appeal disputes a contracting officer's final decision under a contract the government already awarded; a protest challenges the award itself and stays on `ListProtests`. The two resources share no identifiers and no vocabulary, so neither one's filters mean anything against the other's rows.
+
+  `GetContractAppeal` returns a typed `*ContractAppealRecord`, as `GetProtest` does for a protest. Every field on it is a pointer, because an unshaped list row carries only a core subset of the columns and **`decision_text` is served on the Enterprise plan only, absent rather than null below it** — so `nil` has to keep meaning "not served to you" rather than collapsing into an empty string. `TextStatus` and `TextCharCount` describe the extracted text at every plan and read as a pair: a status claiming text alongside a zero character count is a document that has not yielded any.
+
+  Neither `ShapeContractAppealsMinimal` nor `ShapeContractAppealsComprehensive` names `decision_text`, so no suggested shape makes a detail fetch ask for a body most callers cannot read; `TestContractAppealShapesDoNotNameTheEnterpriseDecisionText` pins that. `Listed` is a `*bool` rather than a `bool`, so `false` reaches the server as a filter value instead of vanishing into the zero value.
+
 - **`attachments(extracted_text)` — SLED document bodies on the Small plan and above** (Tango API 4.25.1; parity with tango-python and tango-node). This SDK returns `Record`, so the leaf needs no schema change — what it needed was saying so. Documented on `GetSledOpportunity`, on `ShapeSledOpportunitiesComprehensive` and in `docs/API_REFERENCE.md`: the leaf must be **named** (no `Shape*` preset includes it, and `attachments(*)` does not carry it, because the API resolves the body only for a caller who asked); the **key is absent rather than null** when the text is not being served; and a **contested document never returns text at any plan**. `TestSledShapesDoNotNameThePaidDocumentBody` pins the presets. Searching document text stays ungated on every plan and returns no fragment of it.
 
 - **State, local and education (SLED) procurement** (Tango API 4.25.0; parity with tango-python and tango-node). `ListSledOpportunities` / `GetSledOpportunity`, `ListSledOpportunityRevisions`, `GetSledCoverage`, `ListSledForecasts` / `GetSledForecast`, plus `IterateSledOpportunities` and `IterateSledForecasts`. Three options structs cover every one of the API's 27 solicitation filters and 13 forecast filters as a named field, and five `Shape*` presets land in `shapes.go`.
@@ -33,6 +41,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ### Documentation
 
+- New **Contract appeals** section in `docs/API_REFERENCE.md` covering all three methods, the protest distinction, and the Enterprise gate on the decision body. Alerts on this resource use query type `contract_appeal` and deliver `alerts.contract_appeal.match`.
 - New **State & Local (SLED)** section in `docs/API_REFERENCE.md` covering all six methods and both defaults that surprise people.
 - `docs/WEBHOOKS.md` troubleshooting gained the date-lapse rule and its one exception. An exclusion or DIBBS solicitation reaching its date fires nothing, because open/closed is derived at query time — but `alerts.sled_opportunity.match` **does** fire on a closing, since SLED liveness is a stored column a fifteen-minute sweep writes.
 

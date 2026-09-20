@@ -32,6 +32,22 @@ const (
 	// ShapeProtestsMinimal — default for ListProtests.
 	ShapeProtestsMinimal = "case_id,case_number,title,source_system,outcome,filed_date"
 
+	// ShapeContractAppealsMinimal — suggested list shape for ListContractAppeals.
+	ShapeContractAppealsMinimal = "uuid,board,docket_numbers,decision_date,appellant,judge,decision_type,url"
+
+	// ShapeContractAppealsComprehensive — suggested detail shape for GetContractAppeal.
+	//
+	// Deliberately does not name decision_text.
+	// The full decision body is served on the Enterprise plan only, so a default shape carrying it would make every detail fetch ask for something most callers cannot read.
+	// Name it explicitly when you have the plan:
+	//
+	//	opts := &GetEntityOptions{Shape: "uuid,board,decision_date,decision_text"}
+	ShapeContractAppealsComprehensive = "uuid,board,docket_numbers,docket_source,docket_raw," +
+		"decision_date,decision_date_raw,decision_date_repaired," +
+		"appellant,judge,decision_type,decision_type_raw," +
+		"url,document_id,listing_url,listing_year," +
+		"first_listed_at,listed,text_status,text_char_count"
+
 	// ShapeGrantsMinimal — default for ListGrants.
 	ShapeGrantsMinimal = "grant_id,opportunity_number,title,status(*),agency_code"
 

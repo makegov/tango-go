@@ -159,6 +159,18 @@ func TestIterateProtestsRunsClosure(t *testing.T) {
 	}
 }
 
+func TestIterateContractAppealsRunsClosure(t *testing.T) {
+	srv, calls := makeSinglePageServer(t)
+	c := NewClient(WithAPIKey("k"), WithBaseURL(srv.URL), WithRetries(0))
+	it := c.IterateContractAppeals(context.Background(), &ListContractAppealsOptions{Board: "cbca"})
+	for it.Next() {
+		_ = it.Item()
+	}
+	if *calls == 0 {
+		t.Error("expected at least 1 server call")
+	}
+}
+
 func TestIterateItDashboardRunsClosure(t *testing.T) {
 	srv, calls := makeSinglePageServer(t)
 	c := NewClient(WithAPIKey("k"), WithBaseURL(srv.URL), WithRetries(0))

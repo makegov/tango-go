@@ -242,6 +242,7 @@ The SDK exposes ~94 methods on `*Client` covering every endpoint in the sibling 
 | Forecasts | `ListForecasts` | — | `IterateForecasts` |
 | Grants | `ListGrants` | — | `IterateGrants` |
 | Protests | `ListProtests` | `GetProtest` *(typed: `*ProtestRecord`)* | `IterateProtests` |
+| Contract appeals | `ListContractAppeals` | `GetContractAppeal` *(typed: `*ContractAppealRecord`)* | `IterateContractAppeals` |
 | IT Dashboard | `ListItDashboard` | `GetItDashboard` | `IterateItDashboard` |
 | NAICS / PSC | `ListNAICS` / `ListPSC` | `GetNAICS` / `GetPSC` | — |
 | Webhooks (CRUD) | `ListWebhookEndpoints` / `ListWebhookAlerts` | `Get…` / `Create…` / `Update…` / `Delete…` | — |
