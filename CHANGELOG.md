@@ -47,13 +47,10 @@ Pre-1.0 (SemVer 0.x): the breaking changes below ship without a deprecation cycl
 - **Breaking: `ProtestRecord` now matches the fields the API returns.** `Agency` and `Protester` are `string` (they were `map[string]any`), and the docket entries moved from `Docket` (tagged `docket`) to `Dockets` (tagged `dockets`). Code that reads `rec.Agency["..."]`, `rec.Protester["..."]` or `rec.Docket` must be updated. `ProtestRecord` also gains every other field the API serves: `Title`, `SolicitationNumber`, `PostedDate`, `DueDate`, `DocketURL`, `DecisionURL`, `Organization`, `Decisions`, and the opt-in `ChallengedParty`, `NaicsCode`, `SizeStandard`, `OutcomeReason`, `Judge`, `Digest` and `DecisionText`.
 - **Breaking: `GetDepartment` returns `*DepartmentRecord`** instead of `Record`. The API serves a department's `code` as an integer (the Department of Defense is `97`), so `DepartmentRecord.Code` is an `*int`. Code that read `rec["code"]` should read `*rec.Code`.
 
-### Deprecated
-
-- **`SearchOpportunityAttachments`**: the API retired `/api/opportunities/attachment-search/`, which now returns 404 for every query. Match attachment text with `Search` on `ListOpportunities`.
-
 ### Removed
 
 - **Breaking: `GetIDVSummary` and `ListIDVSummaryAwards`.** They called `/api/idvs/{id}/summary/` and `/api/idvs/{id}/summary/awards/`, which have never existed in the Tango API. Use `GetIDV` with a richer shape and `ListIDVAwards` instead.
+- **Breaking: `SearchOpportunityAttachments` and `SearchOpportunityAttachmentsOptions`.** The API retired `/api/opportunities/attachment-search/`, which now returns 404 for every query. Match attachment text with `Search` on `ListOpportunities`.
 
 ### Fixed
 

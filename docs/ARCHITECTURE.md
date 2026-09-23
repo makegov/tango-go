@@ -23,7 +23,6 @@ github.com/makegov/tango-go            (package tango)
 ├── vehicles.go            # ListVehicles + GetVehicle + IterateVehicles
 ├── vehicle_subresources.go# ListVehicleAwardees + ListVehicleOrders
 ├── opportunities.go       # Opportunities / Notices / Forecasts / Grants + iterators
-├── attachment_search.go   # SearchOpportunityAttachments
 ├── lookups.go             # Agencies, Organizations, NAICS, PSC, Subawards, Version
 ├── agency_subresources.go # ListAgencyAwardingContracts / FundingContracts
 ├── offices.go             # ListOffices + GetOffice

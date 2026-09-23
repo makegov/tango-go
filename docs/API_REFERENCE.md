@@ -383,22 +383,6 @@ All return `*PaginatedResponse[Record]`. Empty UEI is rejected client-side as `*
 
 `GET /api/opportunities/{opportunity_id}/`. A single opportunity. Validates `opportunityID` non-empty client-side.
 
-### `SearchOpportunityAttachments(ctx, SearchOpportunityAttachmentsOptions) (Record, error)`
-
-> **Deprecated.** The API retired this route; it returns `404` for every query. Attachment text is matched through `Search` on `ListOpportunities`.
-
-`GET /api/opportunities/attachment-search/`.
-
-```go
-res, err := client.SearchOpportunityAttachments(ctx, tango.SearchOpportunityAttachmentsOptions{
-    Q:                    "cybersecurity zero trust",
-    TopK:                 10,
-    IncludeExtractedText: false,
-})
-```
-
-`Q` is required; empty Q raises `*ValidationError` before any network call. `TopK: 0` means "use the server default".
-
 ### `ListNotices(ctx, *ListNoticesOptions) (*PaginatedResponse[Record], error)`
 
 `GET /api/notices/`. Filters: `Active *bool`, `Agency`, `Department`, `Office`, `NAICS`, `NoticeType`, `NoticeID`, `PostedDate[After/Before]`, `PSC`, `ResponseDeadline[After/Before]`, `Search`, `SetAside`, `SolicitationNumber`.
