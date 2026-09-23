@@ -372,19 +372,21 @@ res, err := client.SearchOpportunityAttachments(ctx, tango.SearchOpportunityAtta
 
 ### `ListProtests(ctx, *ListProtestsOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/protests/`. Bid protests from GAO + COFC. Filters: `SourceSystem`, `Outcome`, `CaseType`, `Agency`, `CaseNumber`, `SolicitationNumber`, `Protester`, `Search`, `FiledDate[After/Before]`, `DecisionDate[After/Before]`.
+`GET /api/protests/`. Bid protests from GAO, the Court of Federal Claims (COFC) and the SBA Office of Hearings and Appeals (SBA OHA). Filters: `SourceSystem`, `Outcome`, `CaseType`, `Agency`, `CaseNumber`, `SolicitationNumber`, `NaicsCode` (SBA OHA size and NAICS appeals only), `Protester`, `Search`, `FiledDate[After/Before]`, `DecisionDate[After/Before]`.
 
 > **No ordering.** The viewset rejects ordering; `ListProtestsOptions` deliberately omits the field.
 
 ### `IterateProtests(ctx, *ListProtestsOptions) *Iterator[Record]`
 
-### `GetProtest(ctx, caseNumber string, *GetEntityOptions) (*ProtestRecord, error)`
+### `GetProtest(ctx, caseID string, *GetEntityOptions) (*ProtestRecord, error)`
 
-`GET /api/protests/{caseNumber}/`.
+`GET /api/protests/{caseID}/`.
+`caseID` is the UUID returned as `case_id` by `ListProtests`; the route does not accept a case number such as `B-423274` or `26-292`.
+To look a case up by number, call `ListProtests` with `CaseNumber` set and read `case_id` from the result.
 
-> **Typed return.** Returns `*ProtestRecord` with named fields (`CaseID`, `CaseNumber`, `SourceSystem`, `Outcome`, `CaseType`, `FiledDate`, `DecisionDate`, `Agency`, `Protester`, `ResolvedAgency`, `ResolvedProtester`, `Docket []map[string]any`, `Extra map[string]any`).
+> **Typed return.** Returns `*ProtestRecord` with string fields for every scalar the API serves (`CaseID`, `SourceSystem`, `CaseNumber`, `Title`, `Protester`, `Agency`, `SolicitationNumber`, `CaseType`, `Outcome`, the four dates, `DocketURL`, `DecisionURL`, plus the opt-in `ChallengedParty`, `NaicsCode`, `SizeStandard`, `OutcomeReason`, `Judge`, `Digest` and `DecisionText`), `Organization map[string]any`, `Dockets []map[string]any`, `Decisions []map[string]any`, `ResolvedAgency map[string]any` and `ResolvedProtester map[string]any`.
 
-Use `shape: "...,docket(...)"` to include the nested docket entries.
+Use `Shape: "...,dockets(*),decisions(*)"` to include the nested docket and decision entries.
 
 ---
 

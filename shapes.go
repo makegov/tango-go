@@ -99,7 +99,7 @@ const (
 	// ListSledOpportunities. `description` is detail-only on the API (median
 	// ~550 chars, tail past 120k), so it is deliberately absent.
 	ShapeSledOpportunitiesMinimal = "opportunity_id,solicitation_number,solicitation_type,title,state," +
-		"jurisdiction,agency,status,status_reason,posted_date,response_deadline," +
+		"jurisdiction,agency,status,status_reason,delisted_at,posted_date,response_deadline," +
 		"source_url,has_documents,first_seen_at,last_change_seen_at"
 
 	// ShapeSledOpportunitiesComprehensive — suggested detail shape for
@@ -113,7 +113,7 @@ const (
 	//	opts := &GetEntityOptions{Shape: "opportunity_id,attachments(name,size_bytes,extracted_text)"}
 	ShapeSledOpportunitiesComprehensive = "opportunity_id,solicitation_number,solicitation_type," +
 		"solicitation_type_source,title,description,state,jurisdiction,agency," +
-		"status,status_reason,status_computed_at,source_status,source_url," +
+		"status,status_reason,delisted_at,status_computed_at,source_status,source_url," +
 		"posted_date,response_deadline,response_deadline_original," +
 		"bid_opening_date,bid_opening_raw,category_codes,has_documents," +
 		"first_seen_at,last_seen_at,last_change_seen_at," +
