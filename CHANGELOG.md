@@ -7,6 +7,8 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-23
+
 Pre-1.0 (SemVer 0.x): the breaking changes below ship without a deprecation cycle, and each is marked **Breaking**.
 
 ### Added
