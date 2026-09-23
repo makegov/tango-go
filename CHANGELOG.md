@@ -19,6 +19,18 @@ This project follows [Semantic Versioning](https://semver.org/).
 
   `ShapeSledRevisionsMinimal` omits `changes` on purpose: the per-field before/after needs a Small plan, so naming it in a suggested shape would 403 a Free caller. `changed_fields` is in the shape and available at every plan.
 
+- **`ListProtestsOptions.NaicsCode`** filters protests by the NAICS code at issue in an SBA OHA size or NAICS appeal. GAO and COFC cases never match it.
+- **`ShapeSledOpportunitiesMinimal` and `ShapeSledOpportunitiesComprehensive` now include `delisted_at`**, matching the API's own default SLED shapes, so a caller can see when a portal stopped listing a solicitation.
+
+### Changed
+
+- **Breaking: `ProtestRecord` now matches the fields the API returns.** `Agency` and `Protester` are `string` (they were `map[string]any`), and the docket entries moved from `Docket` (tagged `docket`) to `Dockets` (tagged `dockets`). Code that reads `rec.Agency["..."]`, `rec.Protester["..."]` or `rec.Docket` must be updated. `ProtestRecord` also gains every other field the API serves: `Title`, `SolicitationNumber`, `PostedDate`, `DueDate`, `DocketURL`, `DecisionURL`, `Organization`, `Decisions`, and the opt-in `ChallengedParty`, `NaicsCode`, `SizeStandard`, `OutcomeReason`, `Judge`, `Digest` and `DecisionText`.
+
+### Fixed
+
+- **`GetProtest` failed to decode every response that included `agency` or `protester`**, which is every unshaped call, because the API returns those fields as strings. It now decodes the real payload.
+- **`GetProtest` documentation** now says the route takes the case's UUID `case_id`, not a case number such as `B-423274`; look a case up by number with `ListProtests` and `CaseNumber`. The protest docs now name all three sources: GAO, the Court of Federal Claims and the SBA Office of Hearings and Appeals.
+
 ### Documentation
 
 - New **State & Local (SLED)** section in `docs/API_REFERENCE.md` covering all six methods and both defaults that surprise people.
