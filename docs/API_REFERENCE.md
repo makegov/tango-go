@@ -23,6 +23,7 @@ client := tango.NewClient(tango.WithAPIKey(os.Getenv("TANGO_API_KEY")))
 - [Entities](#entities) (+ sub-resources)
 - [Opportunities / Notices / Forecasts / Grants](#opportunities--notices--forecasts--grants)
 - [Protests](#protests)
+- [Contract appeals](#contract-appeals)
 - [State \& Local (SLED)](#state--local-sled)
 - [IT Dashboard](#it-dashboard)
 - [GSA eLibrary](#gsa-elibrary)
@@ -387,6 +388,46 @@ To look a case up by number, call `ListProtests` with `CaseNumber` set and read 
 > **Typed return.** Returns `*ProtestRecord` with string fields for every scalar the API serves (`CaseID`, `SourceSystem`, `CaseNumber`, `Title`, `Protester`, `Agency`, `SolicitationNumber`, `CaseType`, `Outcome`, the four dates, `DocketURL`, `DecisionURL`, plus the opt-in `ChallengedParty`, `NaicsCode`, `SizeStandard`, `OutcomeReason`, `Judge`, `Digest` and `DecisionText`), `Organization map[string]any`, `Dockets []map[string]any`, `Decisions []map[string]any`, `ResolvedAgency map[string]any` and `ResolvedProtester map[string]any`.
 
 Use `Shape: "...,dockets(*),decisions(*)"` to include the nested docket and decision entries.
+
+---
+
+## Contract appeals
+
+Contract Disputes Act appeal decisions from the two boards of contract appeals — the Civilian Board (CBCA) for civilian agencies, and the Armed Services Board (ASBCA) for defense.
+
+> **These are not bid protests.** An appeal disputes a contracting officer's final decision under a contract the government already awarded — a claim for money, a termination, a default. A protest challenges the award itself and lives on [`/api/protests/`](#protests). The two resources share no identifiers and no vocabulary.
+
+### `ListContractAppeals(ctx, *ListContractAppealsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/contract_appeals/`. Filters: `Board`, `Docket`, `Appellant`, `Judge`, `DecisionType`, `DecisionDate[After/Before]`, `Listed`, `DocumentID`, `Search`, `Ordering`.
+
+`Ordering` is one of `decision_date`, `appellant`, `first_listed_at` or `rank`, defaulting to `-decision_date`. `rank` is only meaningful alongside a non-empty `Search`.
+
+`Listed` is a `*bool` so that `false` is a real filter value rather than an absent one. `Appellant` matches the contractor's name as the board published it — there is no entity resolution behind it, so a company that appears under two spellings needs two queries.
+
+> **`Board` is the split that matters.** Docket numbering, decision-type wording and listing practice all differ between CBCA and ASBCA, so a filter tuned against one board's rows can return nothing against the other's.
+
+> **An unshaped row carries only a core subset of the columns.** Pass `ShapeContractAppealsComprehensive` (or your own field list) when you need the rest. Every field on `ContractAppealRecord` is a pointer for exactly this reason: a missing field means "not asked for or not served", never "empty".
+
+### `IterateContractAppeals(ctx, *ListContractAppealsOptions) *Iterator[Record]`
+
+### `GetContractAppeal(ctx, uuid string, *GetEntityOptions) (*ContractAppealRecord, error)`
+
+`GET /api/contract_appeals/{uuid}/`.
+
+> **Typed return.** Returns `*ContractAppealRecord` with named fields (`UUID`, `Board`, `DocketNumbers []string`, `DocketSource`, `DocketRaw`, `DecisionDate`, `DecisionDateRaw`, `DecisionDateRepaired`, `Appellant`, `Judge`, `DecisionType`, `DecisionTypeRaw`, `URL`, `DocumentID`, `ListingURL`, `ListingYear`, `FirstListedAt`, `Listed`, `TextStatus`, `TextCharCount`, `DecisionText`, `Extra map[string]any`).
+
+> **The decision body is `decision_text`, on the Enterprise plan only.** Below that plan the key is **absent rather than null**, so `DecisionText` stays `nil` — never read `nil` as "this decision has no text". `TextStatus` and `TextCharCount` describe the extracted text at every plan and read as a pair: a status claiming text alongside a zero character count is a document that has not yielded any. Neither `Shape*` preset names `decision_text`; ask for it explicitly.
+
+```go
+rec, err := client.GetContractAppeal(ctx, uuid, &tango.GetEntityOptions{
+    Shape: "uuid,board,decision_date,decision_text",
+})
+```
+
+A consolidated appeal is decided once and carries several dockets, which is why `DocketNumbers` is a slice; `Docket` matches any one of them. `Listed` reports whether the decision is still on a board listing — a board rebuilds its index in place, so a decision can drop off one without being withdrawn.
+
+Alerts on this resource use query type `contract_appeal` and deliver `alerts.contract_appeal.match`; see [`WEBHOOKS.md`](WEBHOOKS.md).
 
 ---
 
