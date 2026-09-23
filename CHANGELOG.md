@@ -7,8 +7,22 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-23
+
+Pre-1.0 (SemVer 0.x): the breaking changes below ship without a deprecation cycle, and each is marked **Breaking**.
+
 ### Added
 
+- **Budget accounts** (`budget.go`): `ListBudgetAccounts` / `IterateBudgetAccounts` (`GET /api/budget/accounts/`), `GetBudgetAccount`, `GetBudgetAccountQuarters` and `GetBudgetAccountRecipients`, with `ListBudgetAccountsOptions` (including `BureauName`, `AccountTitleContains` and `SubfunctionCode`), `BudgetAccountQuartersOptions` (`TAS`), `BudgetAccountRecipientsOptions` (`FundingOrganizationID`) and the `ShapeBudgetAccountsMinimal` preset. The metric range filters (for example `enacted_ba__gte`) go through `Extra`.
+- **`GetEntityBudgetFlows`** (`GET /api/entities/{uei}/budget-flows/`) with `EntityBudgetFlowsOptions` (`Page`, `Limit`, `FiscalYear`): the federal accounts that paid an entity, contract flows only.
+- **Singleton detail GETs**: `GetContract`, `GetSubaward`, `GetOpportunity`, `GetNotice`, `GetForecast` and `GetGrant`, each taking `*GetEntityOptions` for shaping.
+- **Contract sub-routes**: `ListContractSubawards` (`GET /api/contracts/{key}/subawards/`, taking `*EntitySubawardsOptions`) and `ListContractTransactions` (`GET /api/contracts/{key}/transactions/`, taking `*ListOptions`).
+- **Exclusions** (parity with tango-python and tango-node): `ListExclusions` / `IterateExclusions` / `GetExclusion` over `/api/exclusions/`, with every filter the endpoint accepts on `ListExclusionsOptions`. `Active` is derived at query time, so an exclusion reaching its termination date changes it without firing an alert.
+- **DIBBS** (parity with tango-python and tango-node): `ListDibbsRfqs` / `ListDibbsRfps` / `ListDibbsAwards`, their `Iterate…` and `Get…` counterparts, and one options struct per resource naming every filter. Award rows are order line items, so the order-level `total_contract_price` does not sum across rows.
+- **SBIR/STTR** (parity with tango-python and tango-node): `ListSbirTopics` / `ListSbirSolicitations`, their `Iterate…` and `Get…` counterparts, and options structs naming every filter.
+- **New typed filters on existing lists**: `Key` on `ListContractsOptions`, `ListIDVsOptions`, `ListOTAsOptions`, `ListOTIDVsOptions` and `ListOTIDVAwardsOptions`; `OpportunityID` on `ListOpportunitiesOptions`; `NoticeID`, `Department` and `Office` on `ListNoticesOptions`; `ID` on `ListForecastsOptions`; `GrantID` on `ListGrantsOptions`; `PreviousUII` on `ListItDashboardOptions`; `Verbose` on `ListSledOpportunitiesOptions`; `Cage` on `ListEntitiesOptions` (the API's alias for `cage_code`; the server rejects a request that sets both).
+- **Subaward filters on `EntitySubawardsOptions`**: `AwardKey`, `PrimeUEI`, `SubUEI`, `AwardingAgency`, `FundingAgency`, `FiscalYear[Gte/Lte]` and `Recipient`, used by both `ListEntitySubawards` and `ListContractSubawards`.
+- **`DepartmentRecord`**, the typed return of `GetDepartment` (see Changed).
 - **Contract Disputes Act appeal decisions** (Tango API 4.26.0). `ListContractAppeals` / `GetContractAppeal` / `IterateContractAppeals` cover `/api/contract_appeals/` — decisions from the Civilian Board of Contract Appeals (CBCA) and the Armed Services Board of Contract Appeals (ASBCA). `ListContractAppealsOptions` names every filter the endpoint accepts (`Board`, `Docket`, `Appellant`, `Judge`, `DecisionType`, `DecisionDate[After/Before]`, `Listed`, `DocumentID`, `Search`, `Ordering`), and two `Shape*` presets land in `shapes.go`.
 
   **These are not bid protests.** An appeal disputes a contracting officer's final decision under a contract the government already awarded; a protest challenges the award itself and stays on `ListProtests`. The two resources share no identifiers and no vocabulary, so neither one's filters mean anything against the other's rows.
@@ -33,17 +47,26 @@ This project follows [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - **Breaking: `ProtestRecord` now matches the fields the API returns.** `Agency` and `Protester` are `string` (they were `map[string]any`), and the docket entries moved from `Docket` (tagged `docket`) to `Dockets` (tagged `dockets`). Code that reads `rec.Agency["..."]`, `rec.Protester["..."]` or `rec.Docket` must be updated. `ProtestRecord` also gains every other field the API serves: `Title`, `SolicitationNumber`, `PostedDate`, `DueDate`, `DocketURL`, `DecisionURL`, `Organization`, `Decisions`, and the opt-in `ChallengedParty`, `NaicsCode`, `SizeStandard`, `OutcomeReason`, `Judge`, `Digest` and `DecisionText`.
+- **Breaking: `GetDepartment` returns `*DepartmentRecord`** instead of `Record`. The API serves a department's `code` as an integer (the Department of Defense is `97`), so `DepartmentRecord.Code` is an `*int`. Code that read `rec["code"]` should read `*rec.Code`.
+
+### Removed
+
+- **Breaking: `GetIDVSummary` and `ListIDVSummaryAwards`.** They called `/api/idvs/{id}/summary/` and `/api/idvs/{id}/summary/awards/`, which have never existed in the Tango API. Use `GetIDV` with a richer shape and `ListIDVAwards` instead.
+- **Breaking: `SearchOpportunityAttachments` and `SearchOpportunityAttachmentsOptions`.** The API retired `/api/opportunities/attachment-search/`, which now returns 404 for every query. Match attachment text with `Search` on `ListOpportunities`.
 
 ### Fixed
 
 - **`GetProtest` failed to decode every response that included `agency` or `protester`**, which is every unshaped call, because the API returns those fields as strings. It now decodes the real payload.
 - **`GetProtest` documentation** now says the route takes the case's UUID `case_id`, not a case number such as `B-423274`; look a case up by number with `ListProtests` and `CaseNumber`. The protest docs now name all three sources: GAO, the Court of Federal Claims and the SBA Office of Hearings and Appeals.
+- **`ListWebhookAlerts` ignored `Limit`.** The alerts route sizes its pages with `page_size`, not `limit`, so the SDK now sends `Limit` as `page_size`.
 
 ### Documentation
 
 - New **Contract appeals** section in `docs/API_REFERENCE.md` covering all three methods, the protest distinction, and the Enterprise gate on the decision body. Alerts on this resource use query type `contract_appeal` and deliver `alerts.contract_appeal.match`.
 - New **State & Local (SLED)** section in `docs/API_REFERENCE.md` covering all six methods and both defaults that surprise people.
 - `docs/WEBHOOKS.md` troubleshooting gained the date-lapse rule and its one exception. An exclusion or DIBBS solicitation reaching its date fires nothing, because open/closed is derived at query time — but `alerts.sled_opportunity.match` **does** fire on a closing, since SLED liveness is a stored column a fifteen-minute sweep writes.
+- New **Exclusions**, **DIBBS** and **SBIR / STTR** sections in `docs/API_REFERENCE.md`, and corrected signatures and descriptions for the budget, contract and entity sub-resource methods.
+- The README's resource table now lists every resource with a list method, and its version banner reads v0.2.0.
 
 ## [0.1.0] - 2026-05-15
 

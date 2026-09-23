@@ -138,6 +138,10 @@ type ListSledOpportunitiesOptions struct {
 	// Search.
 	Ordering string
 
+	// Verbose adds description and contact to each list row.
+	// description is otherwise detail-only, because its longest values run past 120,000 characters.
+	Verbose bool
+
 	Extra map[string]any
 }
 
@@ -175,6 +179,9 @@ func (o *ListSledOpportunitiesOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "external_id", o.ExternalID)
 	setIfNotEmpty(q, "search", o.Search)
 	setIfNotEmpty(q, "ordering", o.Ordering)
+	if o.Verbose {
+		q.Set("verbose", "true")
+	}
 	for k, v := range o.Extra {
 		q.Set(k, valueToString(v))
 	}

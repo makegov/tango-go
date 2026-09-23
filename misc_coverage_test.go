@@ -210,8 +210,8 @@ func TestUnmarshalWithExtraInvalidJSON(t *testing.T) {
 func TestListWebhookAlertsWithPagination(t *testing.T) {
 	var capturedURL string
 	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
-	_, _ = c.ListWebhookAlerts(context.Background(), &ListOptions{Limit: 5})
-	assertQueryContains(t, capturedURL, map[string]string{"limit": "5"}, nil)
+	_, _ = c.ListWebhookAlerts(context.Background(), &ListOptions{Page: 2, Limit: 5})
+	assertQueryContains(t, capturedURL, map[string]string{"page": "2", "page_size": "5"}, []string{"limit"})
 }
 
 // ---------------------------------------------------------------------------
@@ -225,17 +225,6 @@ func TestListIDVChildIDVsNilOpts(t *testing.T) {
 	assertPathContains(t, capturedURL, "/api/idvs/IDV-KEY/idvs/")
 	// No query params should be sent
 	assertQueryContains(t, capturedURL, nil, []string{"ordering", "naics"})
-}
-
-// ---------------------------------------------------------------------------
-// ListIDVSummaryAwards nil opts
-// ---------------------------------------------------------------------------
-
-func TestListIDVSummaryAwardsNilOpts(t *testing.T) {
-	var capturedURL string
-	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
-	_, _ = c.ListIDVSummaryAwards(context.Background(), "SOL-001", nil)
-	assertPathContains(t, capturedURL, "/api/idvs/SOL-001/summary/awards/")
 }
 
 // ---------------------------------------------------------------------------

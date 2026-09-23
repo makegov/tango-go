@@ -1,6 +1,6 @@
 # API Reference
 
-Method-by-method reference for every public function and method on `*tango.Client` plus the supporting types. ~94 methods in total. For client construction options, see [`CLIENT.md`](CLIENT.md); for response shaping, see [`SHAPES.md`](SHAPES.md); for webhook signing + receiving, see [`WEBHOOKS.md`](WEBHOOKS.md).
+Method-by-method reference for every public function and method on `*tango.Client` plus the supporting types. About 140 methods in total. For client construction options, see [`CLIENT.md`](CLIENT.md); for response shaping, see [`SHAPES.md`](SHAPES.md); for webhook signing + receiving, see [`WEBHOOKS.md`](WEBHOOKS.md).
 
 All methods take `context.Context` first. Options structs are always passed by pointer; `nil` is valid and means "use SDK / server defaults". List methods return `*PaginatedResponse[Record]` (where `Record = map[string]any`); a handful of typed-return methods are flagged inline. Detail methods return `Record` or a typed `*<Resource>Record` struct (also flagged).
 
@@ -16,6 +16,7 @@ client := tango.NewClient(tango.WithAPIKey(os.Getenv("TANGO_API_KEY")))
 - [Organizations / Offices / Departments](#organizations--offices--departments)
 - [Business types](#business-types)
 - [Contracts](#contracts)
+- [Budget](#budget)
 - [IDVs](#idvs) (+ sub-resources)
 - [OTAs / OTIDVs](#otas--otidvs)
 - [Subawards](#subawards)
@@ -25,6 +26,9 @@ client := tango.NewClient(tango.WithAPIKey(os.Getenv("TANGO_API_KEY")))
 - [Protests](#protests)
 - [Contract appeals](#contract-appeals)
 - [State \& Local (SLED)](#state--local-sled)
+- [Exclusions](#exclusions)
+- [DIBBS](#dibbs)
+- [SBIR / STTR](#sbir--sttr)
 - [IT Dashboard](#it-dashboard)
 - [GSA eLibrary](#gsa-elibrary)
 - [LCATs](#lcats)
@@ -106,9 +110,10 @@ orgs, _ := client.ListOrganizations(ctx, &tango.ListOrganizationsOptions{
 
 > **Deprecated upstream.** `GET /api/departments/`. Retained for parity. Prefer `ListOrganizations` with `Level: "1"`.
 
-### `GetDepartment(ctx, code string) (Record, error)`
+### `GetDepartment(ctx, code string) (*DepartmentRecord, error)`
 
-`GET /api/departments/{code}/`. Code is typically the CGAC department code.
+`GET /api/departments/{code}/`. Returns a typed `*DepartmentRecord` (`Code *int`, `Name`, `Abbreviation`, `Extra`).
+The department code is an integer on the wire (the Department of Defense is `97`), so `"97"` and `"097"` both resolve.
 
 ---
 
@@ -178,6 +183,44 @@ for c, err := range client.IterateContracts(ctx, opts).Seq() {
 }
 ```
 
+### `GetContract(ctx, key string, *GetEntityOptions) (Record, error)`
+
+`GET /api/contracts/{key}/`. Fetches a single contract record. Validates `key` non-empty client-side.
+
+### `ListContractSubawards(ctx, key string, *EntitySubawardsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/contracts/{key}/subawards/`. Subawards reported against one prime contract. Takes the same subaward filters as `ListEntitySubawards`.
+
+### `ListContractTransactions(ctx, key string, *ListOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/contracts/{key}/transactions/`. The transaction history behind one contract. The route pages with `Page` and `Limit` and takes no filters.
+
+---
+
+## Budget
+
+One row per federal account and fiscal year, covering the budget lifecycle from request through outlay. The record is wide and shape-driven; `ShapeBudgetAccountsMinimal` is a compact starting point. Every dollar and ratio metric also takes exact, `__gte` and `__lte` filters (for example `enacted_ba__gte`), reachable through `Extra`.
+
+### `ListBudgetAccounts(ctx, *ListBudgetAccountsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/budget/accounts/`. Lists budget-account rollups. Typed filters: `FederalAccountSymbol`, `FiscalYear` (+ `FiscalYearGte` / `FiscalYearLte`), `AgencyCode`, `BEACategory`, `OnOffBudget`, `BureauName`, `AccountTitleContains`, `SubfunctionCode`, `Search`, `Ordering`.
+
+### `IterateBudgetAccounts(ctx, *ListBudgetAccountsOptions) *Iterator[Record]`
+
+Walks every budget-account rollup matching opts.
+
+### `GetBudgetAccount(ctx, id string, *GetEntityOptions) (Record, error)`
+
+`GET /api/budget/accounts/{id}/`. One account-year by its numeric id. Name `appendix(*)` in the shape to include the appendix object-class breakdown.
+
+### `GetBudgetAccountQuarters(ctx, id string, *BudgetAccountQuartersOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/budget/accounts/{id}/quarters/`. Quarterly TAS-grain obligation and outlay flow for an account-year: one row per (TAS, quarter). Options: `Page`, `Limit`, `TAS`. Coverage starts at FY2021; an earlier account-year returns an empty page.
+
+### `GetBudgetAccountRecipients(ctx, id string, *BudgetAccountRecipientsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/budget/accounts/{id}/recipients/`. Funding-office by recipient contract flows, largest first. Options: `Page`, `Limit`, `FundingOrganizationID`. Each row carries resolved `funding_office` and `recipient` objects and a capped `contracts` list.
+
 ---
 
 ## IDVs
@@ -187,6 +230,8 @@ IDVs (indefinite delivery vehicles) are parent "vehicle award" records that can 
 ### `ListIDVs(ctx, *ListIDVsOptions) (*PaginatedResponse[Record], error)`
 
 `GET /api/idvs/`. Cursor-paginated.
+
+`ListContractsOptions`, `ListIDVsOptions`, `ListOTAsOptions`, `ListOTIDVsOptions` and `ListOTIDVAwardsOptions` all carry `Key`, which matches the award key the detail endpoint takes; join several with `|`.
 
 ### `GetIDV(ctx, key string, *GetEntityOptions) (Record, error)`
 
@@ -205,14 +250,6 @@ IDVs (indefinite delivery vehicles) are parent "vehicle award" records that can 
 ### `ListIDVTransactions(ctx, key string, *ListOptions) (*PaginatedResponse[Record], error)`
 
 `GET /api/idvs/{key}/transactions/`. Raw transaction history backing an IDV. Only accepts pagination params (no filters).
-
-### `GetIDVSummary(ctx, identifier string) (Record, error)`
-
-> **Deprecated.** `GET /api/idvs/{identifier}/summary/`. The current server returns `404` for this endpoint. Retained for parity with the Node SDK. Migrate to `GetIDV` with a richer `Shape`.
-
-### `ListIDVSummaryAwards(ctx, identifier string, *ListOptions) (*PaginatedResponse[Record], error)`
-
-> **Deprecated.** `GET /api/idvs/{identifier}/summary/awards/`. Server returns `404`. Migrate to `ListIDVAwards`.
 
 ### `ListIDVLcats(ctx, key string, *EntityLcatsOptions) (*PaginatedResponse[Record], error)`
 
@@ -258,9 +295,13 @@ OTAs (Other Transaction Authority awards) and OTIDVs (umbrella OT agreements wit
 
 `GET /api/subawards/`. Filters: `AwardKey`, `PrimeUEI`, `SubUEI`, `AwardingAgency`, `FundingAgency`, `FiscalYear[Gte/Lte]`, `Recipient`, `Ordering`.
 
-> **Ordering allowlist.** The server rejects all ordering values except `"last_modified_date"` and `"-last_modified_date"`. Other values return `400` (tango#2254).
+> **Ordering allowlist.** The server rejects all ordering values except `"last_modified_date"` and `"-last_modified_date"`. Other values return `400`.
 
 > **Shape constraints.** Use `ShapeSubawardsMinimal` — the server rejects `id` and `amount` in subaward shapes.
+
+### `GetSubaward(ctx, key string, *GetEntityOptions) (Record, error)`
+
+`GET /api/subawards/{key}/`. A single subaward record. Validates `key` non-empty client-side.
 
 ---
 
@@ -296,7 +337,9 @@ Vehicles provide a solicitation-centric grouping of related IDVs.
 
 ### `ListEntities(ctx, *ListEntitiesOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/entities/`. Federal vendors / recipients. Filters: `Search`, `CageCode`, `NAICS`, `Name`, `PSC`, `PurposeOfRegistrationCode`, `Socioeconomic`, `State`, `TotalAwardsObligated[Gte/Lte]`, `UEI`, `ZipCode`.
+`GET /api/entities/`. Federal vendors / recipients. Filters: `Search`, `CageCode`, `Cage`, `NAICS`, `Name`, `PSC`, `PurposeOfRegistrationCode`, `Socioeconomic`, `State`, `TotalAwardsObligated[Gte/Lte]`, `UEI`, `ZipCode`.
+
+> `Cage` is the API's alias for `CageCode`; both filter the same field, and the server rejects a request that sets both.
 
 ### `GetEntity(ctx, key string, *GetEntityOptions) (Record, error)`
 
@@ -316,8 +359,11 @@ All take a UEI plus `*EntitySubresourceOptions` (embeds `ListOptions` + `Joiner`
 | `ListEntityOTIDVs(ctx, uei, *EntitySubresourceOptions)` | `GET /api/entities/{uei}/otidvs/` |
 | `ListEntitySubawards(ctx, uei, *EntitySubawardsOptions)` | `GET /api/entities/{uei}/subawards/` |
 | `ListEntityLcats(ctx, uei, *EntityLcatsOptions)` | `GET /api/entities/{uei}/lcats/` |
+| `GetEntityBudgetFlows(ctx, uei, *EntityBudgetFlowsOptions)` | `GET /api/entities/{uei}/budget-flows/` |
 
 All return `*PaginatedResponse[Record]`. Empty UEI is rejected client-side as `*ValidationError`.
+
+`EntitySubawardsOptions` carries the subaward filters (`AwardKey`, `PrimeUEI`, `SubUEI`, `AwardingAgency`, `FundingAgency`, `FiscalYear[Gte/Lte]`, `Recipient`) plus `Ordering`. `EntityBudgetFlowsOptions` takes `Page`, `Limit` and `FiscalYear`; budget flows are contract-side only.
 
 ### `GetEntityMetrics(ctx, uei string, months int, periodGrouping string) (Record, error)`
 
@@ -329,43 +375,45 @@ All return `*PaginatedResponse[Record]`. Empty UEI is rejected client-side as `*
 
 ### `ListOpportunities(ctx, *ListOpportunitiesOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/opportunities/`. SAM.gov opportunities. Filters: `Active *bool`, `Agency`, `FirstNoticeDate[After/Before]`, `LastNoticeDate[After/Before]`, `NAICS`, `NoticeType`, `Ordering`, `PlaceOfPerformance`, `PSC`, `ResponseDeadline[After/Before]`, `Search`, `SetAside`, `SolicitationNumber`.
+`GET /api/opportunities/`. SAM.gov opportunities. Filters: `Active *bool`, `Agency`, `FirstNoticeDate[After/Before]`, `LastNoticeDate[After/Before]`, `NAICS`, `NoticeType`, `Ordering`, `PlaceOfPerformance`, `PSC`, `ResponseDeadline[After/Before]`, `Search`, `SetAside`, `SolicitationNumber`, `OpportunityID`.
 
 ### `IterateOpportunities(ctx, *ListOpportunitiesOptions) *Iterator[Record]`
 
-### `SearchOpportunityAttachments(ctx, SearchOpportunityAttachmentsOptions) (Record, error)`
+### `GetOpportunity(ctx, opportunityID string, *GetEntityOptions) (Record, error)`
 
-`GET /api/opportunities/attachment-search/`. Semantic search over the extracted text of opportunity attachments (SOWs, PWSs, J&As, etc.).
-
-```go
-res, err := client.SearchOpportunityAttachments(ctx, tango.SearchOpportunityAttachmentsOptions{
-    Q:                    "cybersecurity zero trust",
-    TopK:                 10,
-    IncludeExtractedText: false,
-})
-```
-
-`Q` is required; empty Q raises `*ValidationError` before any network call. `TopK: 0` means "use the server default".
+`GET /api/opportunities/{opportunity_id}/`. A single opportunity. Validates `opportunityID` non-empty client-side.
 
 ### `ListNotices(ctx, *ListNoticesOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/notices/`. Filters: `Active *bool`, `Agency`, `NAICS`, `NoticeType`, `PostedDate[After/Before]`, `PSC`, `ResponseDeadline[After/Before]`, `Search`, `SetAside`, `SolicitationNumber`.
+`GET /api/notices/`. Filters: `Active *bool`, `Agency`, `Department`, `Office`, `NAICS`, `NoticeType`, `NoticeID`, `PostedDate[After/Before]`, `PSC`, `ResponseDeadline[After/Before]`, `Search`, `SetAside`, `SolicitationNumber`.
 
 > **No ordering.** The notices viewset rejects every `?ordering=` value, so `ListNoticesOptions` deliberately omits an `Ordering` field (mirrors Python and Node).
 
 ### `IterateNotices(ctx, *ListNoticesOptions) *Iterator[Record]`
 
+### `GetNotice(ctx, noticeID string, *GetEntityOptions) (Record, error)`
+
+`GET /api/notices/{notice_id}/`. A single notice. Validates `noticeID` non-empty client-side.
+
 ### `ListForecasts(ctx, *ListForecastsOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/forecasts/`. Filters: `Agency`, `AwardDate[After/Before]`, `FiscalYear[Gte/Lte]`, `Modified[After/Before]`, `NAICSCode`, `NAICSStartsWith`, `Ordering`, `Search`, `SourceSystem`, `Status`.
+`GET /api/forecasts/`. Filters: `Agency`, `AwardDate[After/Before]`, `FiscalYear[Gte/Lte]`, `Modified[After/Before]`, `NAICSCode`, `NAICSStartsWith`, `Ordering`, `Search`, `SourceSystem`, `Status`, `ID`.
 
 ### `IterateForecasts(ctx, *ListForecastsOptions) *Iterator[Record]`
 
+### `GetForecast(ctx, id string, *GetEntityOptions) (Record, error)`
+
+`GET /api/forecasts/{id}/`. A single procurement forecast. Validates `id` non-empty client-side.
+
 ### `ListGrants(ctx, *ListGrantsOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/grants/`. Filters: `Agency`, `ApplicantTypes`, `CFDANumber`, `FundingCategories`, `FundingInstruments`, `OpportunityNumber`, `Ordering`, `PostedDate[After/Before]`, `ResponseDate[After/Before]`, `Search`, `Status`.
+`GET /api/grants/`. Filters: `Agency`, `ApplicantTypes`, `CFDANumber`, `GrantID`, `FundingCategories`, `FundingInstruments`, `OpportunityNumber`, `Ordering`, `PostedDate[After/Before]`, `ResponseDate[After/Before]`, `Search`, `Status`.
 
 ### `IterateGrants(ctx, *ListGrantsOptions) *Iterator[Record]`
+
+### `GetGrant(ctx, grantID string, *GetEntityOptions) (Record, error)`
+
+`GET /api/grants/{grant_id}/`. A single grant opportunity. Validates `grantID` non-empty client-side.
 
 ---
 
@@ -439,7 +487,7 @@ This data does not join to the federal data: no UEI, no PIID, no agency-hierarch
 
 ### `ListSledOpportunities(ctx, *ListSledOpportunitiesOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/sled/opportunities/`. Filters: `State`, `Jurisdiction`, `Status`, `Active`, `Agency`, `SolicitationNumber`, `SolicitationType`, `HasDocuments`, `RevisionKind`, `Naics`, `Nigp`, `Unspsc`, `Category`, `CategoryCode`, `Posted[After/Before]`, `ResponseDeadline[After/Before]`, `FirstSeen[After/Before]`, `ChangeSeenAfter`, `Modified[After/Before]`, `Platform`, `NativeID`, `ExternalID`, `Search`, `Ordering`.
+`GET /api/sled/opportunities/`. Filters: `State`, `Jurisdiction`, `Status`, `Active`, `Agency`, `SolicitationNumber`, `SolicitationType`, `HasDocuments`, `RevisionKind`, `Naics`, `Nigp`, `Unspsc`, `Category`, `CategoryCode`, `Posted[After/Before]`, `ResponseDeadline[After/Before]`, `FirstSeen[After/Before]`, `ChangeSeenAfter`, `Modified[After/Before]`, `Platform`, `NativeID`, `ExternalID`, `Search`, `Ordering`, `Verbose`.
 
 > **Leaving both `Status` and `Active` unset returns open solicitations only.** Only about a fifth of the corpus is open, and a portal drops a closed solicitation rather than restating it, so the API defaults the list to `status=open`. Set `Status` explicitly to page the whole corpus; `Status: "open|unknown"` also reaches the standing rosters and dateless RFIs that `unknown` covers. `GetSledOpportunity` returns a solicitation whatever its status.
 >
@@ -447,7 +495,7 @@ This data does not join to the federal data: no UEI, no PIID, no agency-hierarch
 
 > **`Status` is Tango's answer, not the portal's.** It is derived from the portal's word, the deadline and the clock, and refreshed every fifteen minutes. The portal's own word is served as `source_status`, is frozen at last capture, and is **not** filterable — most of what it calls open already has a passed deadline.
 
-`Active` and `HasDocuments` are `*bool` so that `false` is a real filter value rather than an absent one. Use `Extra` for anything the struct does not name (e.g. `verbose`).
+`Active` and `HasDocuments` are `*bool` so that `false` is a real filter value rather than an absent one. Use `Extra` for anything the struct does not name. `Verbose: true` adds `description` and `contact` to each list row; `description` is otherwise detail-only because its longest values run past 120,000 characters.
 
 `Search` is ranked over title, agency, identifiers, category labels and description, widened by the solicitations whose *attachment text* matched. A row that matched on its description gains a `snippet` with the matching passage; a title-or-agency match carries none. Attachment matching contributes ids only.
 
@@ -505,6 +553,76 @@ Returns corpus totals plus one row per jurisdiction — the total, the count in 
 
 ---
 
+## Exclusions
+
+SAM.gov exclusions: debarments, suspensions and other ineligibility actions.
+
+### `ListExclusions(ctx, *ListExclusionsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/exclusions/`. Filters: `Active *bool`, `Delisted *bool`, `ClassificationType`, `ExclusionType`, `ExclusionProgram`, `ExcludingAgencyCode`, `ExcludingAgencyName`, `UEI`, `CageCode`, `NPI`, `EntityUEI`, `ActivateDate[After/Before]`, `TerminationDate[After/Before]`, `UpdateDate[After/Before]`, `Search`, `Ordering`.
+
+> **`Active` is derived at query time.** An exclusion is active when it is not delisted, has activated and has not terminated. Reaching a termination date changes the answer without any write, so it fires no alert. `Delisted` is different: it means SAM lifted or withdrew the exclusion.
+
+Most exclusions name individuals and carry no UEI. `EntityUEI` matches only when an exclusion's UEI resolved to a registered entity.
+
+### `IterateExclusions(ctx, *ListExclusionsOptions) *Iterator[Record]`
+
+### `GetExclusion(ctx, exclusionKey string, *GetEntityOptions) (Record, error)`
+
+`GET /api/exclusions/{exclusion_key}/`.
+
+---
+
+## DIBBS
+
+Defense Logistics Agency solicitations and awards from the DLA Internet Bid Board System. Whether an RFQ or RFP is open is derived at query time from its closing date.
+
+### `ListDibbsRfqs(ctx, *ListDibbsRfqsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/dibbs/rfqs/`. Filters: `Open *bool`, `NSN`, `PartNumber`, `Solicitation`, `PurchaseRequest`, `SetAside` (`"Y"` / `"N"`), `StatusCode`, `Organization`, `QuantityMin` / `QuantityMax`, `ReturnByDate[After/Before]`, `IssueDate[After/Before]`, `Search`, `Ordering`.
+
+### `ListDibbsRfps(ctx, *ListDibbsRfpsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/dibbs/rfps/`. Filters: `Open *bool`, `NSN`, `PartNumber`, `Solicitation`, `BuyerCode`, `Organization`, `IssuedDate[After/Before]`, `ClosesDate[After/Before]`, `Search`, `Ordering`.
+
+### `ListDibbsAwards(ctx, *ListDibbsAwardsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/dibbs/awards/`. One row per award line item. Filters: `NSN`, `PartNumber`, `Solicitation`, `AwardNumber`, `DeliveryOrderNumber`, `PurchaseRequest`, `AwardeeCage`, `Entity`, `Organization`, `AwardDate[After/Before]`, `PostedDate[After/Before]`, `TotalContractPriceMin` / `TotalContractPriceMax`, `Search`, `Ordering`.
+
+> **Order-level money repeats per line.** `total_contract_price` is the whole order's price, carried on every line item of that order, so it does not sum across rows.
+
+### `IterateDibbsRfqs` / `IterateDibbsRfps` / `IterateDibbsAwards`
+
+Walk every row matching the options.
+
+### `GetDibbsRfq` / `GetDibbsRfp` / `GetDibbsAward(ctx, uuid string, *GetEntityOptions) (Record, error)`
+
+`GET /api/dibbs/{rfqs,rfps,awards}/{uuid}/`.
+
+---
+
+## SBIR / STTR
+
+SBIR and STTR topics, and the solicitation cycles they are released under.
+
+### `ListSbirTopics(ctx, *ListSbirTopicsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/sbir/topics/`. Filters: `Activity` (`"open"`, `"closed"` or `"unknown"`), `Agency` (partial match on the raw agency text, not organization-resolved), `TopicNumber`, `SolicitationNumber`, `Year`, `DocSource`, `CloseDate[After/Before]`, `OpenDate[After/Before]`, `ReleaseDate[After/Before]`, `Search`, `Ordering`.
+
+### `ListSbirSolicitations(ctx, *ListSbirSolicitationsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/sbir/solicitations/`. Filters: `Activity` (`"open"` or `"closed"`), `Program` (`"SBIR"` / `"STTR"`), `SolicitationNumber`, `CycleName`, `SolicitationStatus`, `OutOfCycle *bool`, `Year`, `StartDate[After/Before]`, `EndDate[After/Before]`, `Search`, `Ordering`.
+
+### `IterateSbirTopics` / `IterateSbirSolicitations`
+
+Walk every row matching the options.
+
+### `GetSbirTopic(ctx, topicID string, *GetEntityOptions) (Record, error)` / `GetSbirSolicitation(ctx, solicitationID string, *GetEntityOptions) (Record, error)`
+
+`GET /api/sbir/topics/{topic_id}/` and `GET /api/sbir/solicitations/{solicitation_id}/`.
+
+---
+
 ## IT Dashboard
 
 ### `ListItDashboard(ctx, *ListItDashboardOptions) (*PaginatedResponse[Record], error)`
@@ -514,6 +632,8 @@ Returns corpus totals plus one row per jurisdiction — the total, the count in 
 - Free: `Search`
 - Pro: `AgencyCode`, `TypeOfInvestment`, `UpdatedTime[After/Before]`
 - Business+: `AgencyName`, `CIORating`, `CIORatingMax`, `PerformanceRisk`
+
+`PreviousUII` finds the investment or investments that superseded a retired UII.
 
 Hitting a gated filter on a lower tier returns `403` (surfaces as `*APIError` with `StatusCode 403`).
 
@@ -691,7 +811,7 @@ See [`WEBHOOKS.md`](WEBHOOKS.md) for the full guide. Quick reference:
 
 | Method | Endpoint |
 | ------ | -------- |
-| `ListWebhookAlerts(ctx, *ListOptions)` → `*PaginatedResponse[WebhookAlert]` | `GET /api/webhooks/alerts/` |
+| `ListWebhookAlerts(ctx, *ListOptions)` → `*PaginatedResponse[WebhookAlert]` | `GET /api/webhooks/alerts/` (sends `Limit` as `page_size`) |
 | `GetWebhookAlert(ctx, id)` → `*WebhookAlert` | `GET /api/webhooks/alerts/{id}/` |
 | `CreateWebhookAlert(ctx, WebhookAlertCreateInput)` → `*WebhookAlert` | `POST /api/webhooks/alerts/` |
 | `UpdateWebhookAlert(ctx, id, WebhookAlertUpdateInput)` → `*WebhookAlert` | `PATCH /api/webhooks/alerts/{id}/` |

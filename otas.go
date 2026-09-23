@@ -23,8 +23,10 @@ type ListOTAsOptions struct {
 	AwardingAgency string
 	FundingAgency  string
 	PIID           string
-	Recipient      string
-	UEI            string
+	// Key matches the award key the detail endpoint takes; join several with "|".
+	Key       string
+	Recipient string
+	UEI       string
 
 	// Dollar / fiscal-year bounds
 	FiscalYear    string
@@ -63,6 +65,7 @@ func (o *ListOTAsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "awarding_agency", o.AwardingAgency)
 	setIfNotEmpty(q, "funding_agency", o.FundingAgency)
 	setIfNotEmpty(q, "piid", o.PIID)
+	setIfNotEmpty(q, "key", o.Key)
 	setIfNotEmpty(q, "recipient", o.Recipient)
 	setIfNotEmpty(q, "uei", o.UEI)
 	setIfNotEmpty(q, "fiscal_year", o.FiscalYear)
@@ -140,8 +143,10 @@ type ListOTIDVsOptions struct {
 	AwardingAgency string
 	FundingAgency  string
 	PIID           string
-	Recipient      string
-	UEI            string
+	// Key matches the award key the detail endpoint takes; join several with "|".
+	Key       string
+	Recipient string
+	UEI       string
 
 	FiscalYear    string
 	FiscalYearGte string
@@ -175,6 +180,7 @@ func (o *ListOTIDVsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "awarding_agency", o.AwardingAgency)
 	setIfNotEmpty(q, "funding_agency", o.FundingAgency)
 	setIfNotEmpty(q, "piid", o.PIID)
+	setIfNotEmpty(q, "key", o.Key)
 	setIfNotEmpty(q, "recipient", o.Recipient)
 	setIfNotEmpty(q, "uei", o.UEI)
 	setIfNotEmpty(q, "fiscal_year", o.FiscalYear)
@@ -251,8 +257,10 @@ type ListOTIDVAwardsOptions struct {
 	AwardingAgency string
 	FundingAgency  string
 	PIID           string
-	Recipient      string
-	UEI            string
+	// Key matches the award key the detail endpoint takes; join several with "|".
+	Key       string
+	Recipient string
+	UEI       string
 
 	FiscalYear    string
 	FiscalYearGte string
@@ -286,6 +294,7 @@ func (o *ListOTIDVAwardsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "awarding_agency", o.AwardingAgency)
 	setIfNotEmpty(q, "funding_agency", o.FundingAgency)
 	setIfNotEmpty(q, "piid", o.PIID)
+	setIfNotEmpty(q, "key", o.Key)
 	setIfNotEmpty(q, "recipient", o.Recipient)
 	setIfNotEmpty(q, "uei", o.UEI)
 	setIfNotEmpty(q, "fiscal_year", o.FiscalYear)

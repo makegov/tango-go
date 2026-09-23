@@ -35,9 +35,11 @@ type ListContractsOptions struct {
 	ExpiringLte     string
 
 	// Agencies / identifiers
-	AwardingAgency         string
-	FundingAgency          string
-	PIID                   string
+	AwardingAgency string
+	FundingAgency  string
+	PIID           string
+	// Key matches the award key the detail endpoint takes; join several with "|".
+	Key                    string
 	SolicitationIdentifier string
 	NAICS                  string
 	PSC                    string
@@ -89,6 +91,7 @@ func (o *ListContractsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "awarding_agency", o.AwardingAgency)
 	setIfNotEmpty(q, "funding_agency", o.FundingAgency)
 	setIfNotEmpty(q, "piid", o.PIID)
+	setIfNotEmpty(q, "key", o.Key)
 	setIfNotEmpty(q, "solicitation_identifier", o.SolicitationIdentifier)
 	setIfNotEmpty(q, "naics", firstNonEmpty(o.NAICSCode, o.NAICS))
 	setIfNotEmpty(q, "psc", firstNonEmpty(o.PSCCode, o.PSC))
@@ -167,6 +170,37 @@ func (c *Client) IterateContracts(ctx context.Context, opts *ListContractsOption
 			return c.ListContracts(ctx, &next)
 		},
 	}
+}
+
+// GetContract fetches one contract by its award key (/api/contracts/{key}/).
+func (c *Client) GetContract(ctx context.Context, key string, opts *GetEntityOptions) (Record, error) {
+	if key == "" {
+		return nil, &ValidationError{&APIError{Message: "contract key is required"}}
+	}
+	return getGeneric[Record](ctx, c, "/api/contracts/"+pathEscape(key)+"/", opts.toQuery())
+}
+
+// ListContractSubawards lists the subawards reported against one prime contract (/api/contracts/{key}/subawards/).
+func (c *Client) ListContractSubawards(ctx context.Context, key string, opts *EntitySubawardsOptions) (*PaginatedResponse[Record], error) {
+	if key == "" {
+		return nil, &ValidationError{&APIError{Message: "contract key is required"}}
+	}
+	q := url.Values{}
+	if opts != nil {
+		q = opts.toQuery()
+	}
+	return listGeneric[Record](ctx, c, "/api/contracts/"+pathEscape(key)+"/subawards/", q)
+}
+
+// ListContractTransactions lists the transaction history behind one contract (/api/contracts/{key}/transactions/).
+// The route pages with page and limit and takes no filters.
+func (c *Client) ListContractTransactions(ctx context.Context, key string, opts *ListOptions) (*PaginatedResponse[Record], error) {
+	if key == "" {
+		return nil, &ValidationError{&APIError{Message: "contract key is required"}}
+	}
+	q := url.Values{}
+	opts.applyTo(q)
+	return listGeneric[Record](ctx, c, "/api/contracts/"+pathEscape(key)+"/transactions/", q)
 }
 
 func valueToString(v any) string {

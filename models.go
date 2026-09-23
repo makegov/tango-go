@@ -150,7 +150,7 @@ func (w *WebhookEndpoint) UnmarshalJSON(data []byte) error {
 // WebhookEndpointCreateInput is the body for CreateWebhookEndpoint.
 //
 // `Name` and `CallbackURL` are required server-side (the API enforces
-// unique(user, name) on endpoints — see tango#1.0.0 changes). `IsActive`
+// unique(user, name) on endpoints). `IsActive`
 // defaults to true on the server when omitted; the SDK preserves omit
 // semantics so the server gets to apply that default.
 type WebhookEndpointCreateInput struct {

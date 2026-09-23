@@ -98,3 +98,10 @@ func TestIterateItDashboardNilOpts(t *testing.T) {
 		t.Fatal("expected non-nil iterator")
 	}
 }
+
+func TestListItDashboardForwardsPreviousUII(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListItDashboard(context.Background(), &ListItDashboardOptions{PreviousUII: "015-000000100"})
+	assertQueryContains(t, capturedURL, map[string]string{"previous_uii": "015-000000100"}, nil)
+}

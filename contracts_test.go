@@ -242,6 +242,54 @@ func TestListContractsAwardType(t *testing.T) {
 	assertQueryContains(t, capturedURL, map[string]string{"award_type": "A"}, nil)
 }
 
+func TestGetContractRequiresKey(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.GetContract(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestGetContractBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
+	_, _ = c.GetContract(context.Background(), "KEY-1", nil)
+	assertPathContains(t, capturedURL, "/api/contracts/KEY-1/")
+}
+
+func TestListContractSubawardsRequiresKey(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.ListContractSubawards(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestListContractSubawardsBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListContractSubawards(context.Background(), "KEY-1", nil)
+	assertPathContains(t, capturedURL, "/api/contracts/KEY-1/subawards/")
+}
+
+func TestListContractTransactionsRequiresKey(t *testing.T) {
+	c := NewClient(WithAPIKey("k"), WithBaseURL("http://localhost:0"), WithRetries(0))
+	_, err := c.ListContractTransactions(context.Background(), "", nil)
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("expected *ValidationError, got %T: %v", err, err)
+	}
+}
+
+func TestListContractTransactionsBuildsPath(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListContractTransactions(context.Background(), "KEY-1", nil)
+	assertPathContains(t, capturedURL, "/api/contracts/KEY-1/transactions/")
+}
+
 func TestListContractsServerError(t *testing.T) {
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
@@ -253,5 +301,75 @@ func TestListContractsServerError(t *testing.T) {
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) {
 		t.Fatalf("expected *APIError, got %T", err)
+	}
+}
+
+func TestListContractSubawardsForwardsSubawardFilters(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListContractSubawards(context.Background(), "KEY-1", &EntitySubawardsOptions{SubUEI: "SUB123456789", FiscalYear: "2025", Ordering: "-last_modified_date"})
+	assertPathContains(t, capturedURL, "/api/contracts/KEY-1/subawards/")
+	assertQueryContains(t, capturedURL, map[string]string{"sub_uei": "SUB123456789", "fiscal_year": "2025", "ordering": "-last_modified_date"}, []string{"search"})
+}
+
+func TestListContractTransactionsPaginates(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListContractTransactions(context.Background(), "KEY-1", &ListOptions{Page: 2, Limit: 100})
+	assertQueryContains(t, capturedURL, map[string]string{"page": "2", "limit": "100"}, []string{"search", "ordering"})
+}
+
+func TestAwardListsForwardKey(t *testing.T) {
+	cases := map[string]func(c *Client){
+		"contracts": func(c *Client) {
+			_, _ = c.ListContracts(context.Background(), &ListContractsOptions{Key: "K1|K2"})
+		},
+		"idvs": func(c *Client) {
+			_, _ = c.ListIDVs(context.Background(), &ListIDVsOptions{Key: "K1|K2"})
+		},
+		"otas": func(c *Client) {
+			_, _ = c.ListOTAs(context.Background(), &ListOTAsOptions{Key: "K1|K2"})
+		},
+		"otidvs": func(c *Client) {
+			_, _ = c.ListOTIDVs(context.Background(), &ListOTIDVsOptions{Key: "K1|K2"})
+		},
+		"otidv awards": func(c *Client) {
+			_, _ = c.ListOTIDVAwards(context.Background(), "OT1", &ListOTIDVAwardsOptions{Key: "K1|K2"})
+		},
+	}
+	for name, call := range cases {
+		t.Run(name, func(t *testing.T) {
+			var capturedURL string
+			c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+			call(c)
+			assertQueryContains(t, capturedURL, map[string]string{"key": "K1|K2"}, nil)
+		})
+	}
+}
+
+func TestSingletonGettersForwardShapeNotPagination(t *testing.T) {
+	cases := []struct {
+		name string
+		path string
+		get  func(c *Client, ctx context.Context, id string, opts *GetEntityOptions) (Record, error)
+	}{
+		{"contract", "/api/contracts/X/", (*Client).GetContract},
+		{"subaward", "/api/subawards/X/", (*Client).GetSubaward},
+		{"opportunity", "/api/opportunities/X/", (*Client).GetOpportunity},
+		{"notice", "/api/notices/X/", (*Client).GetNotice},
+		{"forecast", "/api/forecasts/X/", (*Client).GetForecast},
+		{"grant", "/api/grants/X/", (*Client).GetGrant},
+		{"budget account", "/api/budget/accounts/X/", (*Client).GetBudgetAccount},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var capturedURL string
+			c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
+			if _, err := tc.get(c, context.Background(), "X", &GetEntityOptions{Shape: "*", FlatLists: true}); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			assertPathContains(t, capturedURL, tc.path)
+			assertQueryContains(t, capturedURL, map[string]string{"shape": "*", "flat_lists": "true"}, []string{"page", "limit", "cursor"})
+		})
 	}
 }

@@ -25,6 +25,8 @@ type ListOpportunitiesOptions struct {
 	Search                 string
 	SetAside               string
 	SolicitationNumber     string
+	// OpportunityID matches the identifier the detail endpoint takes; join several with "|".
+	OpportunityID string
 
 	Extra map[string]any
 }
@@ -50,6 +52,7 @@ func (o *ListOpportunitiesOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "response_deadline_before", o.ResponseDeadlineBefore)
 	setIfNotEmpty(q, "search", o.Search)
 	setIfNotEmpty(q, "set_aside", o.SetAside)
+	setIfNotEmpty(q, "opportunity_id", o.OpportunityID)
 	setIfNotEmpty(q, "solicitation_number", o.SolicitationNumber)
 	for k, v := range o.Extra {
 		q.Set(k, valueToString(v))
@@ -100,6 +103,12 @@ type ListNoticesOptions struct {
 	SetAside               string
 	SolicitationNumber     string
 
+	// NoticeID matches the identifier the detail endpoint takes; join several with "|".
+	NoticeID string
+	// Department and Office accept a name, abbreviation, CGAC or FPDS code, or organization UUID; join several with "|".
+	Department string
+	Office     string
+
 	Extra map[string]any
 }
 
@@ -120,6 +129,9 @@ func (o *ListNoticesOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "response_deadline_before", o.ResponseDeadlineBefore)
 	setIfNotEmpty(q, "search", o.Search)
 	setIfNotEmpty(q, "set_aside", o.SetAside)
+	setIfNotEmpty(q, "notice_id", o.NoticeID)
+	setIfNotEmpty(q, "department", o.Department)
+	setIfNotEmpty(q, "office", o.Office)
 	setIfNotEmpty(q, "solicitation_number", o.SolicitationNumber)
 	for k, v := range o.Extra {
 		q.Set(k, valueToString(v))
@@ -155,6 +167,9 @@ type ListForecastsOptions struct {
 	SourceSystem    string
 	Status          string
 
+	// ID matches the forecast id the detail endpoint takes; join several with "|".
+	ID string
+
 	Extra map[string]any
 }
 
@@ -177,6 +192,7 @@ func (o *ListForecastsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "ordering", o.Ordering)
 	setIfNotEmpty(q, "search", o.Search)
 	setIfNotEmpty(q, "source_system", o.SourceSystem)
+	setIfNotEmpty(q, "id", o.ID)
 	setIfNotEmpty(q, "status", o.Status)
 	for k, v := range o.Extra {
 		q.Set(k, valueToString(v))
@@ -200,6 +216,7 @@ type ListGrantsOptions struct {
 	Agency             string
 	ApplicantTypes     string
 	CFDANumber         string
+	GrantID            string
 	FundingCategories  string
 	FundingInstruments string
 	OpportunityNumber  string
@@ -223,6 +240,7 @@ func (o *ListGrantsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "agency", o.Agency)
 	setIfNotEmpty(q, "applicant_types", o.ApplicantTypes)
 	setIfNotEmpty(q, "cfda_number", o.CFDANumber)
+	setIfNotEmpty(q, "grant_id", o.GrantID)
 	setIfNotEmpty(q, "funding_categories", o.FundingCategories)
 	setIfNotEmpty(q, "funding_instruments", o.FundingInstruments)
 	setIfNotEmpty(q, "opportunity_number", o.OpportunityNumber)
@@ -294,4 +312,40 @@ func (c *Client) IterateGrants(ctx context.Context, opts *ListGrantsOptions) *It
 			return c.ListGrants(ctx, &next)
 		},
 	}
+}
+
+// GetOpportunity fetches a single opportunity by its identifier
+// (/api/opportunities/{opportunity_id}/).
+func (c *Client) GetOpportunity(ctx context.Context, opportunityID string, opts *GetEntityOptions) (Record, error) {
+	if opportunityID == "" {
+		return nil, &ValidationError{&APIError{Message: "opportunity_id is required"}}
+	}
+	return getGeneric[Record](ctx, c, "/api/opportunities/"+pathEscape(opportunityID)+"/", opts.toQuery())
+}
+
+// GetNotice fetches a single notice by its identifier
+// (/api/notices/{notice_id}/).
+func (c *Client) GetNotice(ctx context.Context, noticeID string, opts *GetEntityOptions) (Record, error) {
+	if noticeID == "" {
+		return nil, &ValidationError{&APIError{Message: "notice_id is required"}}
+	}
+	return getGeneric[Record](ctx, c, "/api/notices/"+pathEscape(noticeID)+"/", opts.toQuery())
+}
+
+// GetForecast fetches a single procurement forecast by its identifier
+// (/api/forecasts/{id}/).
+func (c *Client) GetForecast(ctx context.Context, id string, opts *GetEntityOptions) (Record, error) {
+	if id == "" {
+		return nil, &ValidationError{&APIError{Message: "forecast id is required"}}
+	}
+	return getGeneric[Record](ctx, c, "/api/forecasts/"+pathEscape(id)+"/", opts.toQuery())
+}
+
+// GetGrant fetches a single grant opportunity by its identifier
+// (/api/grants/{grant_id}/).
+func (c *Client) GetGrant(ctx context.Context, grantID string, opts *GetEntityOptions) (Record, error) {
+	if grantID == "" {
+		return nil, &ValidationError{&APIError{Message: "grant_id is required"}}
+	}
+	return getGeneric[Record](ctx, c, "/api/grants/"+pathEscape(grantID)+"/", opts.toQuery())
 }

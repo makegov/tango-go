@@ -143,7 +143,7 @@ type ListSubawardsOptions struct {
 	FiscalYearLte  string
 	Recipient      string
 	// Ordering must be "last_modified_date" or "-last_modified_date";
-	// the server rejects others (tango#2254).
+	// the server rejects others.
 	Ordering string
 }
 
@@ -164,6 +164,15 @@ func (c *Client) ListSubawards(ctx context.Context, opts *ListSubawardsOptions) 
 		setIfNotEmpty(q, "ordering", opts.Ordering)
 	}
 	return listGeneric[Record](ctx, c, "/api/subawards/", q)
+}
+
+// GetSubaward fetches a single subaward record by its key
+// (/api/subawards/{key}/).
+func (c *Client) GetSubaward(ctx context.Context, key string, opts *GetEntityOptions) (Record, error) {
+	if key == "" {
+		return nil, &ValidationError{&APIError{Message: "subaward key is required"}}
+	}
+	return getGeneric[Record](ctx, c, "/api/subawards/"+pathEscape(key)+"/", opts.toQuery())
 }
 
 // GetVersion returns the API version metadata.

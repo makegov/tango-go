@@ -4,15 +4,15 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/makegov/tango-go.svg)](https://pkg.go.dev/github.com/makegov/tango-go)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **In development — v0.1.0.** Not yet at sibling-SDK parity. The public API may shift before v1.0.0. Pin to a specific tag if you depend on this in production.
+> **In development — v0.2.0.** Pre-1.0. The public API may shift before v1.0.0. Pin to a specific tag if you depend on this in production.
 
 Official Go SDK for the [Tango API](https://tango.makegov.com) — federal contracts, IDVs, entities, opportunities, grants, vehicles, and more, with dynamic response shaping so you fetch only the fields you need.
 
-The sibling SDKs (`tango-node` and `tango-python`) are at v1.0.0. This Go SDK ships the full transport, error model, retry/rate-limit handling, webhook signing, and a curated subset of resource methods. More endpoints land each 0.x release; see [CHANGELOG.md](CHANGELOG.md) for what's shipped.
+This Go SDK ships the full transport, error model, retry/rate-limit handling and webhook signing, and covers the same public resources as the sibling `tango-node` and `tango-python` SDKs; see [CHANGELOG.md](CHANGELOG.md) for what's shipped.
 
 ## Features
 
-- **Dynamic response shaping** — request exactly the fields you need via 21 built-in shape presets or a custom comma-separated field selector.
+- **Dynamic response shaping** — request exactly the fields you need via 29 built-in shape presets or a custom comma-separated field selector.
 - **Typed errors** — `*AuthError`, `*NotFoundError`, `*ValidationError`, `*RateLimitError`, `*TimeoutError`, `*APIError`, all composable via `errors.As` / `errors.Is`.
 - **Smart retries** — automatic backoff on 5xx / 408 / 429 / transport errors, honoring the server's `Retry-After` header.
 - **Generic pagination** — `PaginatedResponse[T]` envelope + `Iterator[T]` that walks every page for you.
@@ -129,7 +129,7 @@ You can also override the base URL via `TANGO_BASE_URL` or `tango.WithBaseURL("h
 
 ### Dynamic Response Shaping
 
-Every list and get endpoint accepts a `shape` parameter. The SDK ships 21 presets matching the Node/Python SDKs:
+Most list and get endpoints accept a `shape` parameter. The SDK ships 29 presets:
 
 ```go
 // Use a preset
@@ -226,28 +226,33 @@ if errors.As(err, &apiErr) {
 
 ## API Methods
 
-The SDK exposes ~94 methods on `*Client` covering every endpoint in the sibling Node/Python SDKs. The most-used 15 are listed here; the **full method-by-method reference lives in [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)**.
+The SDK exposes about 140 methods on `*Client` covering the public resources the sibling Node/Python SDKs cover. The most-used 15 are listed here; the **full method-by-method reference lives in [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md)**.
 
 | Resource | List | Get | Iterate |
 | ---- | ---- | ---- | ---- |
 | Agencies | `ListAgencies` | `GetAgency` *(typed: `*AgencyRecord`)* | — |
-| Contracts | `ListContracts` | — | `IterateContracts` |
+| Contracts | `ListContracts` | `GetContract` | `IterateContracts` |
 | Entities | `ListEntities` | `GetEntity` | `IterateEntities` |
 | IDVs | `ListIDVs` | `GetIDV` | `IterateIDVs` |
 | Vehicles | `ListVehicles` | `GetVehicle` | `IterateVehicles` |
 | OTAs | `ListOTAs` | `GetOTA` | `IterateOTAs` |
 | OTIDVs | `ListOTIDVs` | `GetOTIDV` | `IterateOTIDVs` |
-| Opportunities | `ListOpportunities` | — | `IterateOpportunities` |
-| Notices | `ListNotices` | — | `IterateNotices` |
-| Forecasts | `ListForecasts` | — | `IterateForecasts` |
-| Grants | `ListGrants` | — | `IterateGrants` |
+| Opportunities | `ListOpportunities` | `GetOpportunity` | `IterateOpportunities` |
+| Notices | `ListNotices` | `GetNotice` | `IterateNotices` |
+| Forecasts | `ListForecasts` | `GetForecast` | `IterateForecasts` |
+| Grants | `ListGrants` | `GetGrant` | `IterateGrants` |
+| Budget accounts | `ListBudgetAccounts` | `GetBudgetAccount` | `IterateBudgetAccounts` |
 | Protests | `ListProtests` | `GetProtest` *(typed: `*ProtestRecord`)* | `IterateProtests` |
 | Contract appeals | `ListContractAppeals` | `GetContractAppeal` *(typed: `*ContractAppealRecord`)* | `IterateContractAppeals` |
+| SLED opportunities / forecasts | `ListSledOpportunities` / `ListSledForecasts` | `GetSledOpportunity` / `GetSledForecast` | `IterateSledOpportunities` / `IterateSledForecasts` |
+| Exclusions | `ListExclusions` | `GetExclusion` | `IterateExclusions` |
+| DIBBS RFQs / RFPs / awards | `ListDibbsRfqs` / `ListDibbsRfps` / `ListDibbsAwards` | `GetDibbsRfq` / `GetDibbsRfp` / `GetDibbsAward` | `IterateDibbs…` |
+| SBIR topics / solicitations | `ListSbirTopics` / `ListSbirSolicitations` | `GetSbirTopic` / `GetSbirSolicitation` | `IterateSbir…` |
 | IT Dashboard | `ListItDashboard` | `GetItDashboard` | `IterateItDashboard` |
 | NAICS / PSC | `ListNAICS` / `ListPSC` | `GetNAICS` / `GetPSC` | — |
 | Webhooks (CRUD) | `ListWebhookEndpoints` / `ListWebhookAlerts` | `Get…` / `Create…` / `Update…` / `Delete…` | — |
 
-Sub-resources and lookups are also covered: `ListEntityContracts` / `IDVs` / `OTAs` / `OTIDVs` / `Subawards` / `Lcats`, `ListIDVAwards` / `ChildIDVs` / `Transactions` / `Lcats`, `ListAgencyAwardingContracts` / `FundingContracts`, `ListVehicleAwardees` / `Orders`, `ListOTIDVAwards`, `ListGsaElibraryContracts`, `ListBusinessTypes`, `ListOffices`, `ListDepartments` *(deprecated)*, `ListMasSins`, `ListAssistanceListings`, `ListLcats`, plus all three metrics getters (`GetNAICSMetrics` / `GetPSCMetrics` / `GetEntityMetrics`) and the dispatcher `ListMetrics`. Meta: `Resolve`, `Validate`, `GetVersion`, `ListAPIKeys`, `SearchOpportunityAttachments`. Webhook signing: `webhooks.Generate` / `Verify` / `Parse` / `VerifyRequest` / `Middleware`.
+Sub-resources and lookups are also covered: `ListEntityContracts` / `IDVs` / `OTAs` / `OTIDVs` / `Subawards` / `Lcats`, `GetEntityBudgetFlows`, `ListContractSubawards` / `Transactions`, `GetBudgetAccountQuarters` / `Recipients`, `GetSubaward`, `ListSledOpportunityRevisions`, `GetSledCoverage`, `ListIDVAwards` / `ChildIDVs` / `Transactions` / `Lcats`, `ListAgencyAwardingContracts` / `FundingContracts`, `ListVehicleAwardees` / `Orders`, `ListOTIDVAwards`, `ListGsaElibraryContracts`, `ListBusinessTypes`, `ListOffices`, `ListDepartments` *(deprecated)*, `ListMasSins`, `ListAssistanceListings`, `ListLcats`, plus all three metrics getters (`GetNAICSMetrics` / `GetPSCMetrics` / `GetEntityMetrics`) and the dispatcher `ListMetrics`. Meta: `Resolve`, `Validate`, `GetVersion`, `ListAPIKeys`. Webhook signing: `webhooks.Generate` / `Verify` / `Parse` / `VerifyRequest` / `Middleware`.
 
 See [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) for full signatures, filter fields, and quirks per method.
 

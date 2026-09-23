@@ -9,8 +9,11 @@ import (
 type ListEntitiesOptions struct {
 	ListOptions
 
-	Search                    string
-	CageCode                  string
+	Search   string
+	CageCode string
+	// Cage is the API's alias for CageCode and filters the same field.
+	// The server rejects a request that sets both.
+	Cage                      string
 	NAICS                     string
 	Name                      string
 	PSC                       string
@@ -33,6 +36,7 @@ func (o *ListEntitiesOptions) toQuery() url.Values {
 	o.ListOptions.applyTo(q)
 	setIfNotEmpty(q, "search", o.Search)
 	setIfNotEmpty(q, "cage_code", o.CageCode)
+	setIfNotEmpty(q, "cage", o.Cage)
 	setIfNotEmpty(q, "naics", o.NAICS)
 	setIfNotEmpty(q, "name", o.Name)
 	setIfNotEmpty(q, "psc", o.PSC)
@@ -100,4 +104,20 @@ func (c *Client) IterateEntities(ctx context.Context, opts *ListEntitiesOptions)
 			return c.ListEntities(ctx, &next)
 		},
 	}
+}
+
+// toQuery writes the shaping fields a detail GET accepts.
+func (o *GetEntityOptions) toQuery() url.Values {
+	q := url.Values{}
+	if o == nil {
+		return q
+	}
+	setIfNotEmpty(q, "shape", o.Shape)
+	if o.Flat {
+		q.Set("flat", "true")
+	}
+	if o.FlatLists {
+		q.Set("flat_lists", "true")
+	}
+	return q
 }
