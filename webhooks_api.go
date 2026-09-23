@@ -82,7 +82,7 @@ func (c *Client) DeleteWebhookEndpoint(ctx context.Context, id string) error {
 // TestWebhookEndpoint triggers a test delivery for a specific endpoint.
 // POST /api/webhooks/endpoints/test-delivery/ with body {"endpoint": "<id>"}.
 //
-// The canonical request key is `endpoint` (as of tango#2252); the server
+// The canonical request key is `endpoint`; the server
 // still accepts the legacy `endpoint_id` alias for backward compatibility,
 // but the SDK sends the canonical key.
 func (c *Client) TestWebhookEndpoint(ctx context.Context, endpointID string) (*WebhookTestDeliveryResult, error) {
@@ -111,10 +111,17 @@ func (c *Client) GetWebhookSamplePayload(ctx context.Context, eventType string) 
 
 // ListWebhookAlerts returns the caller's filter-based subscriptions.
 // GET /api/webhooks/alerts/.
+//
+// This route sizes its pages with page_size rather than limit, so opts.Limit is sent as page_size.
+// The server caps the page size by plan.
 func (c *Client) ListWebhookAlerts(ctx context.Context, opts *ListOptions) (*PaginatedResponse[WebhookAlert], error) {
 	q := url.Values{}
 	if opts != nil {
 		opts.applyTo(q)
+		if limit := q.Get("limit"); limit != "" {
+			q.Del("limit")
+			q.Set("page_size", limit)
+		}
 	}
 	return listGeneric[WebhookAlert](ctx, c, "/api/webhooks/alerts/", q)
 }

@@ -356,3 +356,24 @@ func TestGetGrantBuildsPath(t *testing.T) {
 	_, _ = c.GetGrant(context.Background(), "GR-1", nil)
 	assertPathContains(t, capturedURL, "/api/grants/GR-1/")
 }
+
+func TestListNoticesForwardsIdentityAndOrgFilters(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListNotices(context.Background(), &ListNoticesOptions{NoticeID: "n1|n2", Department: "DHS", Office: "70Z023"})
+	assertQueryContains(t, capturedURL, map[string]string{"notice_id": "n1|n2", "department": "DHS", "office": "70Z023"}, nil)
+}
+
+func TestListOpportunitiesForwardsOpportunityID(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListOpportunities(context.Background(), &ListOpportunitiesOptions{OpportunityID: "o1|o2"})
+	assertQueryContains(t, capturedURL, map[string]string{"opportunity_id": "o1|o2"}, nil)
+}
+
+func TestListForecastsForwardsID(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListForecasts(context.Background(), &ListForecastsOptions{ID: "123|456"})
+	assertQueryContains(t, capturedURL, map[string]string{"id": "123|456"}, nil)
+}

@@ -9,22 +9,24 @@ import (
 type ListIDVsOptions struct {
 	ListOptions
 
-	AwardDate              string
-	AwardDateGte           string
-	AwardDateLte           string
-	AwardingAgency         string
-	FundingAgency          string
-	ExpiringGte            string
-	ExpiringLte            string
-	FiscalYear             string
-	FiscalYearGte          string
-	FiscalYearLte          string
-	IDVType                string
-	LastDateToOrderGte     string
-	LastDateToOrderLte     string
-	NAICS                  string
-	Ordering               string
-	PIID                   string
+	AwardDate          string
+	AwardDateGte       string
+	AwardDateLte       string
+	AwardingAgency     string
+	FundingAgency      string
+	ExpiringGte        string
+	ExpiringLte        string
+	FiscalYear         string
+	FiscalYearGte      string
+	FiscalYearLte      string
+	IDVType            string
+	LastDateToOrderGte string
+	LastDateToOrderLte string
+	NAICS              string
+	Ordering           string
+	PIID               string
+	// Key matches the award key the detail endpoint takes; join several with "|".
+	Key                    string
 	PopStartDateGte        string
 	PopStartDateLte        string
 	PSC                    string
@@ -59,6 +61,7 @@ func (o *ListIDVsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "naics", o.NAICS)
 	setIfNotEmpty(q, "ordering", o.Ordering)
 	setIfNotEmpty(q, "piid", o.PIID)
+	setIfNotEmpty(q, "key", o.Key)
 	setIfNotEmpty(q, "pop_start_date_gte", o.PopStartDateGte)
 	setIfNotEmpty(q, "pop_start_date_lte", o.PopStartDateLte)
 	setIfNotEmpty(q, "psc", o.PSC)

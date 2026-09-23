@@ -312,3 +312,13 @@ func TestIterateSledNilOpts(t *testing.T) {
 		t.Fatal("expected non-nil forecast iterator")
 	}
 }
+
+func TestListSledOpportunitiesVerbose(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListSledOpportunities(context.Background(), &ListSledOpportunitiesOptions{Verbose: true})
+	assertQueryContains(t, capturedURL, map[string]string{"verbose": "true"}, nil)
+
+	_, _ = c.ListSledOpportunities(context.Background(), &ListSledOpportunitiesOptions{})
+	assertQueryContains(t, capturedURL, nil, []string{"verbose"})
+}

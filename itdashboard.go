@@ -39,6 +39,9 @@ type ListItDashboardOptions struct {
 	CIORatingMax    string
 	PerformanceRisk string
 
+	// PreviousUII finds the investment or investments that superseded a retired UII.
+	PreviousUII string
+
 	Extra map[string]any
 }
 
@@ -49,6 +52,7 @@ func (o *ListItDashboardOptions) toQuery() url.Values {
 	}
 	o.ListOptions.applyTo(q)
 	setIfNotEmpty(q, "search", o.Search)
+	setIfNotEmpty(q, "previous_uii", o.PreviousUII)
 	setIfNotEmpty(q, "agency_code", o.AgencyCode)
 	setIfNotEmpty(q, "agency_name", o.AgencyName)
 	setIfNotEmpty(q, "type_of_investment", o.TypeOfInvestment)

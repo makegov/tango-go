@@ -12,14 +12,14 @@ github.com/makegov/tango-go            (package tango)
 ├── errors.go              # Typed error tree + IsRetryable
 ├── pagination.go          # PaginatedResponse[T] + Iterator[T] (+ Seq)
 ├── internal.go            # ListOptions + listGeneric/getGeneric/postGeneric/patchGeneric
-├── shapes.go              # 21 Shape* constants + DefaultBaseURL
+├── shapes.go              # Shape* preset constants + DefaultBaseURL
 ├── version.go             # const Version
 ├── models.go              # Typed return/input models (AgencyRecord, WebhookEndpoint, ...)
-├── contracts.go           # ListContracts + IterateContracts
+├── contracts.go           # ListContracts + GetContract + IterateContracts + contract sub-routes
 ├── entities.go            # ListEntities + GetEntity + IterateEntities
-├── entity_subresources.go # ListEntityContracts / IDVs / OTAs / OTIDVs / Subawards / Lcats
+├── entity_subresources.go # ListEntityContracts / IDVs / OTAs / OTIDVs / Subawards / Lcats + GetEntityBudgetFlows
 ├── idvs.go                # ListIDVs + GetIDV + IterateIDVs
-├── idv_subresources.go    # ListIDVAwards / ChildIDVs / Transactions / Summary / Lcats
+├── idv_subresources.go    # ListIDVAwards / ChildIDVs / Transactions / Lcats
 ├── vehicles.go            # ListVehicles + GetVehicle + IterateVehicles
 ├── vehicle_subresources.go# ListVehicleAwardees + ListVehicleOrders
 ├── opportunities.go       # Opportunities / Notices / Forecasts / Grants + iterators
@@ -27,12 +27,18 @@ github.com/makegov/tango-go            (package tango)
 ├── lookups.go             # Agencies, Organizations, NAICS, PSC, Subawards, Version
 ├── agency_subresources.go # ListAgencyAwardingContracts / FundingContracts
 ├── offices.go             # ListOffices + GetOffice
-├── departments.go         # ListDepartments + GetDepartment (deprecated upstream)
+├── departments.go         # ListDepartments + GetDepartment (typed *DepartmentRecord; deprecated upstream)
 ├── business_types.go      # ListBusinessTypes + GetBusinessType
 ├── mas_sins.go            # ListMasSins + GetMasSin
 ├── assistance_listings.go # ListAssistanceListings + GetAssistanceListing
 ├── otas.go                # OTAs / OTIDVs / OTIDV Awards (+ iterators)
 ├── protests.go            # Protests (typed *ProtestRecord on GetProtest)
+├── contract_appeals.go    # Contract appeals (typed *ContractAppealRecord)
+├── sled.go                # State, local and education procurement
+├── budget.go              # Budget accounts + quarters + recipients
+├── exclusions.go          # SAM exclusions
+├── dibbs.go               # DIBBS RFQs / RFPs / awards
+├── sbir.go                # SBIR/STTR topics + solicitations
 ├── itdashboard.go         # IT Dashboard investments
 ├── gsa.go                 # GSA eLibrary contracts
 ├── lcats.go               # ListLcats router → entity or IDV sub-resource
@@ -46,14 +52,14 @@ github.com/makegov/tango-go            (package tango)
 
 There are exactly two packages:
 
-- **`tango`** (everything at root) — the API client. Roughly 94 exported methods on `*Client`, plus typed errors, options, paginated responses, and the shape preset constants.
+- **`tango`** (everything at root) — the API client. About 140 exported methods on `*Client`, plus typed errors, options, paginated responses, and the shape preset constants.
 - **`tango/webhooks`** (one subdirectory) — HMAC-SHA256 signing + verification helpers, with no dependency on the API client. A webhook receiver that only needs to verify deliveries can import this package alone.
 
 ### Why flat-at-root?
 
-Idiomatic Go (think `slack-go/slack`, `google/go-github`, the `net/http` standard library) puts all of the package surface at one level. The alternative — Stripe-style sub-packages per resource (`tango/contracts`, `tango/entities`, ...) — would force callers to write `contracts.New(...)`, fragment the documentation, and make discoverability worse for a single-product SDK with ~94 methods. Flat scales fine well past that.
+Idiomatic Go (think `slack-go/slack`, `google/go-github`, the `net/http` standard library) puts all of the package surface at one level. The alternative — Stripe-style sub-packages per resource (`tango/contracts`, `tango/entities`, ...) — would force callers to write `contracts.New(...)`, fragment the documentation, and make discoverability worse for a single-product SDK with about 140 methods. Flat scales fine well past that.
 
-The only justified subpackage is `webhooks/` because signature verification has a fundamentally different consumer profile: a webhook receiver service shouldn't pull the HTTP client, the retry loop, the rate-limit state machine, or any of the resource methods just to compute an HMAC. (See [`decisions.md` D-03 / D-14](../../.mg-tools/scratch/) in this session's scratch for the long-form rationale.)
+The only justified subpackage is `webhooks/` because signature verification has a fundamentally different consumer profile: a webhook receiver service shouldn't pull the HTTP client, the retry loop, the rate-limit state machine, or any of the resource methods just to compute an HMAC.
 
 ### Typed structs vs. `Record`
 
@@ -65,6 +71,8 @@ A small hand-picked set of methods return typed structs where the sibling SDKs a
 | ------ | ----------- |
 | `GetAgency` | `*AgencyRecord` |
 | `GetProtest` | `*ProtestRecord` |
+| `GetContractAppeal` | `*ContractAppealRecord` |
+| `GetDepartment` | `*DepartmentRecord` |
 | `Resolve` | `*ResolveResult` (with `[]ResolveCandidate`) |
 | `Validate` | `*ValidateResult` |
 | `ListWebhookEndpoints` / `GetWebhookEndpoint` / `CreateWebhookEndpoint` / `UpdateWebhookEndpoint` | `*WebhookEndpoint` |
@@ -200,7 +208,7 @@ If you're adding a new resource method, the pattern is:
 4. **Don't add a new file unless the resource is large.** Sub-resources of an existing resource live next to it (e.g. `idv_subresources.go` next to `idvs.go`). Aim for files to stay under ~400 lines.
 5. **Godoc every export.** Start the comment with the symbol name; mention the endpoint path in parens for `*Client` methods.
 
-If you find yourself reaching for an external dependency, stop. The library is stdlib-only and that's a design constraint — see [`decisions.md` D-18](../../.mg-tools/scratch/) for the rationale.
+If you find yourself reaching for an external dependency, stop. The library is stdlib-only and that's a design constraint.
 
 ## Versioning
 

@@ -30,19 +30,25 @@ func TestListBudgetAccountsFilterMapping(t *testing.T) {
 				AgencyCode:           "9700",
 				BEACategory:          "discretionary",
 				OnOffBudget:          "on",
+				BureauName:           "Army",
+				AccountTitleContains: "operation",
+				SubfunctionCode:      "051",
 				Search:               "operations",
 				Ordering:             "-enacted_ba",
 			},
 			wantQS: map[string]string{
-				"federal_account_symbol": "097-0100",
-				"fiscal_year":            "2024",
-				"fiscal_year__gte":       "2020",
-				"fiscal_year__lte":       "2025",
-				"agency_code":            "9700",
-				"bea_category":           "discretionary",
-				"on_off_budget":          "on",
-				"search":                 "operations",
-				"ordering":               "-enacted_ba",
+				"federal_account_symbol":   "097-0100",
+				"fiscal_year":              "2024",
+				"fiscal_year__gte":         "2020",
+				"fiscal_year__lte":         "2025",
+				"agency_code":              "9700",
+				"bea_category":             "discretionary",
+				"on_off_budget":            "on",
+				"bureau_name":              "Army",
+				"account_title__icontains": "operation",
+				"subfunction_code":         "051",
+				"search":                   "operations",
+				"ordering":                 "-enacted_ba",
 			},
 		},
 		{
@@ -139,4 +145,33 @@ func TestGetBudgetAccountRecipientsBuildsPath(t *testing.T) {
 	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
 	_, _ = c.GetBudgetAccountRecipients(context.Background(), "acct-1", nil)
 	assertPathContains(t, capturedURL, "/api/budget/accounts/acct-1/recipients/")
+}
+
+func TestGetBudgetAccountQuartersSendsOnlyItsOwnParams(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, err := c.GetBudgetAccountQuarters(context.Background(), "42", &BudgetAccountQuartersOptions{Page: 2, Limit: 50, TAS: "097-2020/2021-0100"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertPathContains(t, capturedURL, "/api/budget/accounts/42/quarters/")
+	assertQueryContains(t, capturedURL, map[string]string{"page": "2", "limit": "50", "tas": "097-2020/2021-0100"}, []string{"shape", "flat", "cursor"})
+}
+
+func TestGetBudgetAccountRecipientsSendsOnlyItsOwnParams(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, err := c.GetBudgetAccountRecipients(context.Background(), "42", &BudgetAccountRecipientsOptions{Limit: 10, FundingOrganizationID: "0b6d3c1e-0000-4000-8000-000000000000"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertPathContains(t, capturedURL, "/api/budget/accounts/42/recipients/")
+	assertQueryContains(t, capturedURL, map[string]string{"limit": "10", "funding_organization_id": "0b6d3c1e-0000-4000-8000-000000000000"}, []string{"page", "shape", "tas"})
+}
+
+func TestGetBudgetAccountForwardsShape(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
+	_, _ = c.GetBudgetAccount(context.Background(), "42", &GetEntityOptions{Shape: "*,appendix(*)"})
+	assertQueryContains(t, capturedURL, map[string]string{"shape": "*,appendix(*)"}, []string{"page", "limit"})
 }

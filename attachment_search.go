@@ -33,6 +33,9 @@ type SearchOpportunityAttachmentsOptions struct {
 // `search_opportunity_attachments`.
 //
 // Returns *ValidationError if opts.Q is empty.
+//
+// Deprecated: the API retired this route, and it now returns 404 for every query.
+// Attachment text is matched through the Search field on ListOpportunitiesOptions instead.
 func (c *Client) SearchOpportunityAttachments(ctx context.Context, opts SearchOpportunityAttachmentsOptions) (Record, error) {
 	if opts.Q == "" {
 		return nil, &ValidationError{&APIError{Message: "searchOpportunityAttachments: 'q' is required"}}

@@ -11,8 +11,8 @@ type ListEntitiesOptions struct {
 
 	Search   string
 	CageCode string
-	// Cage is a distinct API filter from CageCode; the server rejects
-	// setting both — use one or the other.
+	// Cage is the API's alias for CageCode and filters the same field.
+	// The server rejects a request that sets both.
 	Cage                      string
 	NAICS                     string
 	Name                      string
@@ -104,4 +104,20 @@ func (c *Client) IterateEntities(ctx context.Context, opts *ListEntitiesOptions)
 			return c.ListEntities(ctx, &next)
 		},
 	}
+}
+
+// toQuery writes the shaping fields a detail GET accepts.
+func (o *GetEntityOptions) toQuery() url.Values {
+	q := url.Values{}
+	if o == nil {
+		return q
+	}
+	setIfNotEmpty(q, "shape", o.Shape)
+	if o.Flat {
+		q.Set("flat", "true")
+	}
+	if o.FlatLists {
+		q.Set("flat_lists", "true")
+	}
+	return q
 }

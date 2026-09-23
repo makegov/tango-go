@@ -3,6 +3,7 @@ package tango
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 )
 
@@ -45,4 +46,30 @@ func TestGetDepartmentBuildsPath(t *testing.T) {
 	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
 	_, _ = c.GetDepartment(context.Background(), "097")
 	assertPathContains(t, capturedURL, "/api/departments/097/")
+}
+
+func TestGetDepartmentDecodesIntegerCode(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		capturedURL = r.URL.RequestURI()
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"abbreviation":"DOD","code":97,"name":"Department of Defense","parent":null}`))
+	})
+	got, err := c.GetDepartment(context.Background(), "097")
+	if err != nil {
+		t.Fatalf("GetDepartment: %v", err)
+	}
+	assertPathContains(t, capturedURL, "/api/departments/097/")
+	if got.Code == nil || *got.Code != 97 {
+		t.Fatalf("Code: want 97, got %v", got.Code)
+	}
+	if got.Name == nil || *got.Name != "Department of Defense" {
+		t.Errorf("Name: got %v", got.Name)
+	}
+	if got.Abbreviation == nil || *got.Abbreviation != "DOD" {
+		t.Errorf("Abbreviation: got %v", got.Abbreviation)
+	}
+	if _, ok := got.Extra["parent"]; !ok {
+		t.Errorf("unknown field should land in Extra, got %#v", got.Extra)
+	}
 }

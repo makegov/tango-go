@@ -210,8 +210,8 @@ func TestUnmarshalWithExtraInvalidJSON(t *testing.T) {
 func TestListWebhookAlertsWithPagination(t *testing.T) {
 	var capturedURL string
 	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
-	_, _ = c.ListWebhookAlerts(context.Background(), &ListOptions{Limit: 5})
-	assertQueryContains(t, capturedURL, map[string]string{"limit": "5"}, nil)
+	_, _ = c.ListWebhookAlerts(context.Background(), &ListOptions{Page: 2, Limit: 5})
+	assertQueryContains(t, capturedURL, map[string]string{"page": "2", "page_size": "5"}, []string{"limit"})
 }
 
 // ---------------------------------------------------------------------------

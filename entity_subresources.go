@@ -45,11 +45,20 @@ func (o *EntitySubresourceOptions) toQuery() url.Values {
 	return q
 }
 
-// EntitySubawardsOptions filters /api/entities/{uei}/subawards/.
-// The subawards endpoint enforces a strict server-side ordering allowlist
-// (see tango#2254); pass values through as-is and let the server validate.
+// EntitySubawardsOptions filters the subaward sub-resources: /api/entities/{uei}/subawards/ and /api/contracts/{key}/subawards/.
+// The subawards endpoints enforce a strict server-side ordering allowlist; pass values through as-is and let the server validate.
 type EntitySubawardsOptions struct {
 	ListOptions
+
+	AwardKey       string
+	PrimeUEI       string
+	SubUEI         string
+	AwardingAgency string
+	FundingAgency  string
+	FiscalYear     string
+	FiscalYearGte  string
+	FiscalYearLte  string
+	Recipient      string
 
 	// Ordering must match the subawards endpoint's allowlist (e.g.
 	// "last_modified_date" / "-last_modified_date").
@@ -65,6 +74,15 @@ func (o *EntitySubawardsOptions) toQuery() url.Values {
 		return q
 	}
 	o.ListOptions.applyTo(q)
+	setIfNotEmpty(q, "award_key", o.AwardKey)
+	setIfNotEmpty(q, "prime_uei", o.PrimeUEI)
+	setIfNotEmpty(q, "sub_uei", o.SubUEI)
+	setIfNotEmpty(q, "awarding_agency", o.AwardingAgency)
+	setIfNotEmpty(q, "funding_agency", o.FundingAgency)
+	setIfNotEmpty(q, "fiscal_year", o.FiscalYear)
+	setIfNotEmpty(q, "fiscal_year_gte", o.FiscalYearGte)
+	setIfNotEmpty(q, "fiscal_year_lte", o.FiscalYearLte)
+	setIfNotEmpty(q, "recipient", o.Recipient)
 	setIfNotEmpty(q, "ordering", o.Ordering)
 	for k, v := range o.Extra {
 		q.Set(k, valueToString(v))
@@ -165,9 +183,35 @@ func (c *Client) ListEntityLcats(ctx context.Context, uei string, opts *EntityLc
 	return listGeneric[Record](ctx, c, "/api/entities/"+pathEscape(uei)+"/lcats/", q)
 }
 
-// GetEntityBudgetFlows lists funding-account budget flows attributed to an
-// entity (/api/entities/{uei}/budget-flows/). Returns a paginated list of
-// funding-account rows.
-func (c *Client) GetEntityBudgetFlows(ctx context.Context, uei string, opts *EntitySubresourceOptions) (*PaginatedResponse[Record], error) {
-	return c.listEntitySubresource(ctx, uei, "budget-flows", opts)
+// EntityBudgetFlowsOptions controls GetEntityBudgetFlows.
+//
+// The route takes page, limit and one narrowing filter; its rows are fixed rather than shape-driven.
+type EntityBudgetFlowsOptions struct {
+	Page  int
+	Limit int
+
+	// FiscalYear narrows the rows to one fiscal year; zero means every year.
+	FiscalYear int
+}
+
+func (o *EntityBudgetFlowsOptions) toQuery() url.Values {
+	q := url.Values{}
+	if o == nil {
+		return q
+	}
+	setIfNonZeroInt(q, "page", o.Page)
+	setIfNonZeroInt(q, "limit", o.Limit)
+	setIfNonZeroInt(q, "fiscal_year", o.FiscalYear)
+	return q
+}
+
+// GetEntityBudgetFlows lists the federal accounts that paid an entity, with budget context, largest contract obligation first (/api/entities/{uei}/budget-flows/).
+//
+// Contract flows only; assistance and grant flows are not in this index.
+// Each row carries the account's budget context and a capped contracts list; a row that hits the cap sets contracts_truncated and carries its full piids array.
+func (c *Client) GetEntityBudgetFlows(ctx context.Context, uei string, opts *EntityBudgetFlowsOptions) (*PaginatedResponse[Record], error) {
+	if uei == "" {
+		return nil, &ValidationError{&APIError{Message: "entity UEI is required"}}
+	}
+	return listGeneric[Record](ctx, c, "/api/entities/"+pathEscape(uei)+"/budget-flows/", opts.toQuery())
 }

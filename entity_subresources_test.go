@@ -196,3 +196,43 @@ func TestListEntitySubresourcePathEscape(t *testing.T) {
 	_, _ = c.ListEntityContracts(context.Background(), "UEI 1234", nil)
 	assertPathContains(t, capturedURL, "UEI%201234")
 }
+
+func TestGetEntityBudgetFlowsSendsOnlyItsOwnParams(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, err := c.GetEntityBudgetFlows(context.Background(), "UEI12345", &EntityBudgetFlowsOptions{Page: 3, Limit: 25, FiscalYear: 2024})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertPathContains(t, capturedURL, "/api/entities/UEI12345/budget-flows/")
+	assertQueryContains(t, capturedURL, map[string]string{"page": "3", "limit": "25", "fiscal_year": "2024"}, []string{"search", "ordering", "shape", "joiner"})
+}
+
+func TestListEntitySubawardsFilterMapping(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListEntitySubawards(context.Background(), "UEI12345", &EntitySubawardsOptions{
+		AwardKey:       "CONT_AWD_1",
+		PrimeUEI:       "PRIME1234567",
+		SubUEI:         "SUB123456789",
+		AwardingAgency: "9700",
+		FundingAgency:  "2100",
+		FiscalYear:     "2025",
+		FiscalYearGte:  "2020",
+		FiscalYearLte:  "2026",
+		Recipient:      "acme",
+		Ordering:       "-last_modified_date",
+	})
+	assertQueryContains(t, capturedURL, map[string]string{
+		"award_key":       "CONT_AWD_1",
+		"prime_uei":       "PRIME1234567",
+		"sub_uei":         "SUB123456789",
+		"awarding_agency": "9700",
+		"funding_agency":  "2100",
+		"fiscal_year":     "2025",
+		"fiscal_year_gte": "2020",
+		"fiscal_year_lte": "2026",
+		"recipient":       "acme",
+		"ordering":        "-last_modified_date",
+	}, nil)
+}
