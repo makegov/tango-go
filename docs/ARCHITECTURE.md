@@ -38,6 +38,7 @@ github.com/makegov/tango-go            (package tango)
 ├── exclusions.go          # SAM exclusions
 ├── dibbs.go               # DIBBS RFQs / RFPs / awards
 ├── sbir.go                # SBIR/STTR topics + solicitations
+├── ebuy.go                # GSA eBuy requests, attachment URLs, access check
 ├── itdashboard.go         # IT Dashboard investments
 ├── gsa.go                 # GSA eLibrary contracts
 ├── lcats.go               # ListLcats router → entity or IDV sub-resource

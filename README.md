@@ -248,11 +248,12 @@ The SDK exposes about 140 methods on `*Client` covering the public resources the
 | Exclusions | `ListExclusions` | `GetExclusion` | `IterateExclusions` |
 | DIBBS RFQs / RFPs / awards | `ListDibbsRfqs` / `ListDibbsRfps` / `ListDibbsAwards` | `GetDibbsRfq` / `GetDibbsRfp` / `GetDibbsAward` | `IterateDibbs…` |
 | SBIR topics / solicitations | `ListSbirTopics` / `ListSbirSolicitations` | `GetSbirTopic` / `GetSbirSolicitation` | `IterateSbir…` |
+| GSA eBuy requests *(Pro+, scoped to your linked contracts)* | `ListEbuyRequests` | `GetEbuyRequest` | `IterateEbuyRequests` |
 | IT Dashboard | `ListItDashboard` | `GetItDashboard` | `IterateItDashboard` |
 | NAICS / PSC | `ListNAICS` / `ListPSC` | `GetNAICS` / `GetPSC` | — |
 | Webhooks (CRUD) | `ListWebhookEndpoints` / `ListWebhookAlerts` | `Get…` / `Create…` / `Update…` / `Delete…` | — |
 
-Sub-resources and lookups are also covered: `ListEntityContracts` / `IDVs` / `OTAs` / `OTIDVs` / `Subawards` / `Lcats`, `GetEntityBudgetFlows`, `ListContractSubawards` / `Transactions`, `GetBudgetAccountQuarters` / `Recipients`, `GetSubaward`, `ListSledOpportunityRevisions`, `GetSledCoverage`, `ListIDVAwards` / `ChildIDVs` / `Transactions` / `Lcats`, `ListAgencyAwardingContracts` / `FundingContracts`, `ListVehicleAwardees` / `Orders`, `ListOTIDVAwards`, `ListGsaElibraryContracts`, `ListBusinessTypes`, `ListOffices`, `ListDepartments` *(deprecated)*, `ListMasSins`, `ListAssistanceListings`, `ListLcats`, plus all three metrics getters (`GetNAICSMetrics` / `GetPSCMetrics` / `GetEntityMetrics`) and the dispatcher `ListMetrics`. Meta: `Resolve`, `Validate`, `GetVersion`, `ListAPIKeys`. Webhook signing: `webhooks.Generate` / `Verify` / `Parse` / `VerifyRequest` / `Middleware`.
+Sub-resources and lookups are also covered: `ListEntityContracts` / `IDVs` / `OTAs` / `OTIDVs` / `Subawards` / `Lcats`, `GetEntityBudgetFlows`, `ListContractSubawards` / `Transactions`, `GetBudgetAccountQuarters` / `Recipients`, `GetSubaward`, `ListSledOpportunityRevisions`, `GetSledCoverage`, `GetEbuyAttachmentURL`, `GetEbuyAccess`, `ListIDVAwards` / `ChildIDVs` / `Transactions` / `Lcats`, `ListAgencyAwardingContracts` / `FundingContracts`, `ListVehicleAwardees` / `Orders`, `ListOTIDVAwards`, `ListGsaElibraryContracts`, `ListBusinessTypes`, `ListOffices`, `ListDepartments` *(deprecated)*, `ListMasSins`, `ListAssistanceListings`, `ListLcats`, plus all three metrics getters (`GetNAICSMetrics` / `GetPSCMetrics` / `GetEntityMetrics`) and the dispatcher `ListMetrics`. Meta: `Resolve`, `Validate`, `GetVersion`, `ListAPIKeys`. Webhook signing: `webhooks.Generate` / `Verify` / `Parse` / `VerifyRequest` / `Middleware`.
 
 See [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) for full signatures, filter fields, and quirks per method.
 

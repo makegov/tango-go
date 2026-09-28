@@ -111,6 +111,9 @@ type requestSpec struct {
 	path   string
 	query  url.Values
 	body   any
+
+	// noRedirect stops the client at a 3xx and returns its Location header as the body instead of following it.
+	noRedirect bool
 }
 
 // do executes a single HTTP request with retries. The returned []byte is
@@ -198,7 +201,14 @@ func (c *Client) attempt(ctx context.Context, spec requestSpec) ([]byte, error) 
 		req.Header.Set("User-Agent", c.cfg.userAgent)
 	}
 
-	resp, err := c.cfg.httpClient.Do(req)
+	hc := c.cfg.httpClient
+	if spec.noRedirect {
+		stopAtRedirect := *hc
+		stopAtRedirect.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		hc = &stopAtRedirect
+	}
+
+	resp, err := hc.Do(req)
 	if err != nil {
 		// Timeout vs other transport failure.
 		if errors.Is(err, context.DeadlineExceeded) || errors.Is(reqCtx.Err(), context.DeadlineExceeded) {
@@ -220,6 +230,17 @@ func (c *Client) attempt(ctx context.Context, spec requestSpec) ([]byte, error) 
 
 	// Snapshot rate-limit / response headers for observability.
 	c.rateLimit.set(parseRateLimit(resp.Header), resp.Header.Clone())
+
+	if spec.noRedirect && resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		location := resp.Header.Get("Location")
+		if location == "" {
+			return nil, &APIError{StatusCode: resp.StatusCode, Message: "redirect response has no Location header"}
+		}
+		return []byte(location), nil
+	}
+	if spec.noRedirect && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return nil, &APIError{StatusCode: resp.StatusCode, Message: "expected a redirect, got a success response"}
+	}
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		// Some endpoints (DELETE) return empty bodies — that's fine.

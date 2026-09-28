@@ -29,6 +29,7 @@ client := tango.NewClient(tango.WithAPIKey(os.Getenv("TANGO_API_KEY")))
 - [Exclusions](#exclusions)
 - [DIBBS](#dibbs)
 - [SBIR / STTR](#sbir--sttr)
+- [GSA eBuy](#gsa-ebuy)
 - [IT Dashboard](#it-dashboard)
 - [GSA eLibrary](#gsa-elibrary)
 - [LCATs](#lcats)
@@ -620,6 +621,40 @@ Walk every row matching the options.
 ### `GetSbirTopic(ctx, topicID string, *GetEntityOptions) (Record, error)` / `GetSbirSolicitation(ctx, solicitationID string, *GetEntityOptions) (Record, error)`
 
 `GET /api/sbir/topics/{topic_id}/` and `GET /api/sbir/solicitations/{solicitation_id}/`.
+
+---
+
+## GSA eBuy
+
+GSA eBuy requests (RFQs, RFPs and RFIs), Tango API 5.1.0 and later.
+
+**Scoped to your own schedule contracts.** You see only requests posted under the GSA schedule contracts your account is linked to. The list and detail endpoints require the Pro tier or above (below it they return 403). With no linked contract the list is empty rather than an error, so use `GetEbuyAccess` to tell "no access" from "no matches".
+
+Data caveats:
+
+- `status` is frozen at the last-seen state. eBuy only carries currently-active requests, so a request that closes stops appearing rather than getting a final row; `Open` means "open the last time it was seen". Read `last_seen` for staleness.
+- `contract_number` is accepted as a filter but never returned in any payload.
+- `buyer_agency_code` and some other buyer and contact fields are sparse on older requests.
+
+### `ListEbuyRequests(ctx, *ListEbuyRequestsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/ebuy/requests/`. Filters: `Search` (title, description, reference number, request id and attachment text; ranked by relevance unless `Ordering` is set), `RfqID`, `ReferenceNumber` (dash-insensitive), `RequestType` (`RFQ` / `RFP` / `RFI`), `Status` (`Open` / `Cancelled`, frozen), `Sin`, `Schedule`, `BuyerAgency` (as fed), `Agency` (name, abbreviation or code, including sub-agencies), `ContractNumber` (one of your own linked contracts; any other returns nothing), `IssueDate[After/Before]`, `CloseDate[After/Before]`, `Ordering` (`issue_date`, `close_date`, `last_seen`, `modified`; default `-issue_date`). String filters accept `|` for OR. `ShapeEbuyRequestsMinimal` is the API's default list shape.
+
+### `IterateEbuyRequests`
+
+Walk every request matching the options.
+
+### `GetEbuyRequest(ctx, rfqID string, *GetEntityOptions) (Record, error)`
+
+`GET /api/ebuy/requests/{rfq_id}/`. A request outside your scope returns `*NotFoundError`, the same as an unknown id. The default shape carries every field plus `organization(*)` and `attachments(*)`. An attachment with `is_link: true` is an outbound URL in `doc_path` with no stored document.
+
+### `GetEbuyAttachmentURL(ctx, rfqID string, docSeqNum int) (string, error)`
+
+`GET /api/ebuy/requests/{rfq_id}/attachments/{doc_seq_num}/download/`. The API redirects to a presigned URL valid for about five minutes; the SDK does not follow the redirect and returns the target, so fetch it promptly. A link entry returns `*EbuyLinkAttachmentError` (which unwraps to `*ValidationError`) with the link in `URL`; a document not captured yet returns `*NotFoundError`.
+
+### `GetEbuyAccess(ctx) (*EbuyAccess, error)`
+
+`GET /api/ebuy/access/`. `Enabled`, `Reason` (`"tier_required"` or `"no_contract_grant"`, nil when enabled; `tier_required` wins when both apply) and `Contracts` (your own linked contracts, sorted).
 
 ---
 

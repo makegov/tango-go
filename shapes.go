@@ -52,6 +52,10 @@ const (
 		"url,document_id,listing_url,listing_year," +
 		"first_listed_at,listed,text_status,text_char_count"
 
+	// ShapeEbuyRequestsMinimal — the API's default shape for ListEbuyRequests.
+	ShapeEbuyRequestsMinimal = "rfq_id,request_type,title,schedule,sin,status,buyer_name,buyer_agency," +
+		"buyer_agency_code,reference_number,issue_date,close_date,attachment_count,link_count,last_seen"
+
 	// ShapeGrantsMinimal — default for ListGrants.
 	ShapeGrantsMinimal = "grant_id,opportunity_number,title,status(*),agency_code"
 
