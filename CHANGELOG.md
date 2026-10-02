@@ -7,6 +7,15 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Budget account categories and source anomalies** (Tango API 5.7.0). `/api/budget/accounts/` now serves `account_category` (`budgetary` or `credit_financing` today; an open string) and `source_anomalies` (a list of source-data problems, `[]` when clean) in its default shape. `ListBudgetAccountsOptions` gains `AccountCategory` and `AccountCategoryIn`. `BudgetSourceAnomalies(row)` decodes the list into `[]BudgetSourceAnomaly`, with `BudgetSourceAnomalySource` and `BudgetSourceAnomalyRow` for the source rows behind it; every field is optional and unknown keys land in `Extra`. Constants name today's categories (`BudgetAccountCategory*`) and anomaly codes (`BudgetAnomaly*`).
+
+### Changed
+
+- `ShapeBudgetAccountsMinimal` now includes `account_category` and `source_anomalies`, so a capped `contract_obligated` arrives with the anomaly that explains it.
+- The API's default ordering for `/api/budget/accounts/` now puts null `enacted_ba` (credit financing accounts) last within each fiscal year. No SDK change is needed; pass `Ordering` to sort otherwise.
+
 ## [0.2.0] - 2026-09-23
 
 Pre-1.0 (SemVer 0.x): the breaking changes below ship without a deprecation cycle, and each is marked **Breaking**.
