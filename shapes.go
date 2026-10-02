@@ -12,7 +12,7 @@ const (
 
 	// ShapeBudgetAccountsMinimal — default for ListBudgetAccounts.
 	// It names source_anomalies because that list explains a capped contract_obligated.
-	ShapeBudgetAccountsMinimal = "federal_account_symbol,fiscal_year,agency_name,account_category,enacted_ba," +
+	ShapeBudgetAccountsMinimal = "federal_account_symbol,fiscal_year,data_through_period,agency_name,account_category,enacted_ba," +
 		"obligated_total,contract_obligated,contract_share_of_obligated_capped,source_anomalies"
 
 	// ShapeEntitiesMinimal — default for ListEntities.
