@@ -2,10 +2,26 @@ package tango
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 )
+
+const budgetAccountWithAnomaly = `{"count":1,"next":null,"previous":null,"results":[{
+	"federal_account_symbol":"020-4159","fiscal_year":2024,"account_category":"budgetary",
+	"source_anomalies":[{
+		"code":"contract_exceeds_obligations","field":"contract_obligated","bound_field":"obligated_total",
+		"action":"capped","reported_value":73470455401.8,"served_value":4748670061.77,
+		"likely_cause":"single_row_outlier","affected_fields":["contract_obligated","contract_share_of_obligated"],
+		"message":"Contract obligations exceed total obligations.","severity":"high",
+		"source":{"dataset":"usaspending_file_c","fiscal_year":2024,"rows":[{
+			"fiscal_period":12,"piid":"P-1","parent_piid":null,"tas":"020-X-4159-000",
+			"reporting_agency_id":"020","transaction_obligated_amount":68721785340.03,"file_c_source":"award"
+		}]}
+	}]
+},{"federal_account_symbol":"012-4391","fiscal_year":2024,"account_category":"credit_financing","enacted_ba":null,"source_anomalies":[]}]}`
 
 func TestListBudgetAccountsFilterMapping(t *testing.T) {
 	cases := []struct {
@@ -33,6 +49,7 @@ func TestListBudgetAccountsFilterMapping(t *testing.T) {
 				BureauName:           "Army",
 				AccountTitleContains: "operation",
 				SubfunctionCode:      "051",
+				AccountCategory:      "budgetary",
 				Search:               "operations",
 				Ordering:             "-enacted_ba",
 			},
@@ -47,6 +64,7 @@ func TestListBudgetAccountsFilterMapping(t *testing.T) {
 				"bureau_name":              "Army",
 				"account_title__icontains": "operation",
 				"subfunction_code":         "051",
+				"account_category":         "budgetary",
 				"search":                   "operations",
 				"ordering":                 "-enacted_ba",
 			},
@@ -63,6 +81,27 @@ func TestListBudgetAccountsFilterMapping(t *testing.T) {
 			},
 		},
 		{
+			name:    "account category in joins with commas",
+			opts:    &ListBudgetAccountsOptions{AccountCategoryIn: []string{BudgetAccountCategoryBudgetary, BudgetAccountCategoryCreditFinancing}},
+			wantQS:  map[string]string{"account_category__in": "budgetary,credit_financing"},
+			notInQS: []string{"account_category"},
+		},
+		{
+			name: "data through period filters",
+			opts: &ListBudgetAccountsOptions{
+				DataThroughPeriod:       "9",
+				DataThroughPeriodGte:    "3",
+				DataThroughPeriodLte:    "11",
+				DataThroughPeriodIsNull: boolPtr(false),
+			},
+			wantQS: map[string]string{
+				"data_through_period":         "9",
+				"data_through_period__gte":    "3",
+				"data_through_period__lte":    "11",
+				"data_through_period__isnull": "false",
+			},
+		},
+		{
 			name:   "extra forwards range filters",
 			opts:   &ListBudgetAccountsOptions{Extra: map[string]any{"enacted_ba__gte": "1000000"}},
 			wantQS: map[string]string{"enacted_ba__gte": "1000000"},
@@ -70,7 +109,7 @@ func TestListBudgetAccountsFilterMapping(t *testing.T) {
 		{
 			name:    "zero values omitted",
 			opts:    &ListBudgetAccountsOptions{},
-			notInQS: []string{"federal_account_symbol", "fiscal_year", "agency_code", "ordering"},
+			notInQS: []string{"federal_account_symbol", "fiscal_year", "agency_code", "account_category", "account_category__in", "ordering"},
 		},
 	}
 
@@ -174,4 +213,98 @@ func TestGetBudgetAccountForwardsShape(t *testing.T) {
 	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
 	_, _ = c.GetBudgetAccount(context.Background(), "42", &GetEntityOptions{Shape: "*,appendix(*)"})
 	assertQueryContains(t, capturedURL, map[string]string{"shape": "*,appendix(*)"}, []string{"page", "limit"})
+}
+
+func TestBudgetSourceAnomaliesDecodesListRows(t *testing.T) {
+	c, _ := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(budgetAccountWithAnomaly))
+	}))
+	page, err := c.ListBudgetAccounts(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("ListBudgetAccounts: %v", err)
+	}
+	if got := page.Results[1]["account_category"]; got != BudgetAccountCategoryCreditFinancing {
+		t.Errorf("account_category = %v, want credit_financing", got)
+	}
+
+	anomalies, err := BudgetSourceAnomalies(page.Results[0])
+	if err != nil {
+		t.Fatalf("BudgetSourceAnomalies: %v", err)
+	}
+	if len(anomalies) != 1 {
+		t.Fatalf("got %d anomalies, want 1", len(anomalies))
+	}
+	a := anomalies[0]
+	if *a.Code != BudgetAnomalyContractExceedsObligations || *a.Action != "capped" || *a.BoundField != "obligated_total" {
+		t.Errorf("code/action/bound_field = %q/%q/%q", *a.Code, *a.Action, *a.BoundField)
+	}
+	if *a.ReportedValue != 73470455401.8 || *a.ServedValue != 4748670061.77 {
+		t.Errorf("reported/served = %v/%v", *a.ReportedValue, *a.ServedValue)
+	}
+	if len(a.AffectedFields) != 2 || a.AffectedFields[1] != "contract_share_of_obligated" {
+		t.Errorf("affected_fields = %v", a.AffectedFields)
+	}
+	if a.Extra["severity"] != "high" {
+		t.Errorf("unknown key not kept in Extra: %v", a.Extra)
+	}
+	if a.Source == nil || *a.Source.Dataset != "usaspending_file_c" || *a.Source.FiscalYear != 2024 || len(a.Source.Rows) != 1 {
+		t.Fatalf("source = %+v", a.Source)
+	}
+	row := a.Source.Rows[0]
+	if *row.FiscalPeriod != 12 || *row.PIID != "P-1" || row.ParentPIID != nil || *row.ReportingAgencyID != "020" || *row.TransactionObligatedAmount != 68721785340.03 {
+		t.Errorf("source row = %+v", row)
+	}
+
+	clean, err := BudgetSourceAnomalies(page.Results[1])
+	if err != nil {
+		t.Fatalf("BudgetSourceAnomalies(clean): %v", err)
+	}
+	if clean == nil || len(clean) != 0 {
+		t.Errorf("clean row = %#v, want empty non-nil slice", clean)
+	}
+}
+
+func TestBudgetDataThroughPeriod(t *testing.T) {
+	cases := map[string]struct {
+		row    Record
+		want   int
+		wantOK bool
+	}{
+		"json number": {Record{"data_through_period": json.Number("9")}, 9, true},
+		"float":       {Record{"data_through_period": float64(12)}, 12, true},
+		"null":        {Record{"data_through_period": nil}, 0, false},
+		"absent":      {Record{"fiscal_year": 2026}, 0, false},
+		"fractional":  {Record{"data_through_period": 9.5}, 0, false},
+	}
+	for name, tc := range cases {
+		got, ok := BudgetDataThroughPeriod(tc.row)
+		if got != tc.want || ok != tc.wantOK {
+			t.Errorf("%s: got (%d, %v), want (%d, %v)", name, got, ok, tc.want, tc.wantOK)
+		}
+	}
+}
+
+func TestShapeBudgetAccountsMinimalPutsDataThroughPeriodAfterFiscalYear(t *testing.T) {
+	if !strings.Contains(ShapeBudgetAccountsMinimal, "fiscal_year,data_through_period,") {
+		t.Errorf("ShapeBudgetAccountsMinimal = %q, want data_through_period right after fiscal_year", ShapeBudgetAccountsMinimal)
+	}
+}
+
+func TestBudgetSourceAnomaliesAbsentOrNull(t *testing.T) {
+	for name, row := range map[string]Record{
+		"absent": {"federal_account_symbol": "097-0100"},
+		"null":   {"source_anomalies": nil},
+	} {
+		got, err := BudgetSourceAnomalies(row)
+		if err != nil || got != nil {
+			t.Errorf("%s: got %#v, %v; want nil, nil", name, got, err)
+		}
+	}
+}
+
+func TestBudgetSourceAnomaliesRejectsNonList(t *testing.T) {
+	if _, err := BudgetSourceAnomalies(Record{"source_anomalies": "oops"}); err == nil {
+		t.Error("expected an error for a non-list source_anomalies")
+	}
 }
