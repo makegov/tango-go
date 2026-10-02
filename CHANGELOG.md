@@ -21,11 +21,16 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 - **Budget account categories and source anomalies** (Tango API 5.7.0). `/api/budget/accounts/` now serves `account_category` (`budgetary` or `credit_financing` today; an open string) and `source_anomalies` (a list of source-data problems, `[]` when clean) in its default shape. `ListBudgetAccountsOptions` gains `AccountCategory` and `AccountCategoryIn`. `BudgetSourceAnomalies(row)` decodes the list into `[]BudgetSourceAnomaly`, with `BudgetSourceAnomalySource` and `BudgetSourceAnomalyRow` for the source rows behind it; every field is optional and unknown keys land in `Extra`. Constants name today's categories (`BudgetAccountCategory*`) and anomaly codes (`BudgetAnomaly*`).
 - **Budget account `data_through_period`** (Tango API 5.8.0). `/api/budget/accounts/` now serves `data_through_period` in its default shape, right after `fiscal_year`: the File A fiscal period (1–12) an account-year's figures run through, so the latest fiscal year is partial until it reaches 12; null when the row has no File A data. `BudgetDataThroughPeriod(row)` reads it as `(period, ok)`, and `ListBudgetAccountsOptions` gains `DataThroughPeriod`, `DataThroughPeriodGte`, `DataThroughPeriodLte` and `DataThroughPeriodIsNull`.
+- **Vehicle company counts** (Tango API 5.8.0): `ShapeVehiclesMinimal` and `ShapeVehiclesComprehensive` now request `holder_count` (distinct companies holding one of the vehicle's IDVs) and `order_winner_count` (distinct companies that have won a task order under it), next to `awardee_count`.
 
 ### Changed
 
 - `ShapeBudgetAccountsMinimal` now includes `data_through_period`, `account_category` and `source_anomalies`, so a capped `contract_obligated` arrives with the anomaly that explains it.
 - The API's default ordering for `/api/budget/accounts/` now puts null `enacted_ba` (credit financing accounts) last within each fiscal year. No SDK change is needed; pass `Ordering` to sort otherwise.
+
+### Deprecated
+
+- **`awardee_count` on vehicles** is deprecated by the Tango API as an alias of `order_winner_count`, and is removed at the API's next major version. The vehicle shapes still request it so existing readers keep working; read `order_winner_count` instead.
 
 ## [0.2.0] - 2026-09-23
 
