@@ -3,6 +3,7 @@ package tango
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -136,5 +137,26 @@ func TestIterateVehiclesNilOpts(t *testing.T) {
 	it := c.IterateVehicles(context.Background(), nil)
 	if it == nil {
 		t.Fatal("expected non-nil iterator")
+	}
+}
+
+func TestVehicleShapesCarryCompanyCounts(t *testing.T) {
+	for name, shape := range map[string]string{
+		"ShapeVehiclesMinimal":       ShapeVehiclesMinimal,
+		"ShapeVehiclesComprehensive": ShapeVehiclesComprehensive,
+	} {
+		fields := strings.Split(shape, ",")
+		for _, want := range []string{"awardee_count", "holder_count", "order_winner_count"} {
+			found := false
+			for _, f := range fields {
+				if f == want {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("%s should carry %q: %q", name, want, shape)
+			}
+		}
 	}
 }
