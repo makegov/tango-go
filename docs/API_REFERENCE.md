@@ -203,12 +203,13 @@ One row per federal account and fiscal year, covering the budget lifecycle from 
 
 ### `ListBudgetAccounts(ctx, *ListBudgetAccountsOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/budget/accounts/`. Lists budget-account rollups. Typed filters: `FederalAccountSymbol`, `FiscalYear` (+ `FiscalYearGte` / `FiscalYearLte`), `AgencyCode`, `BEACategory`, `OnOffBudget`, `BureauName`, `AccountTitleContains`, `SubfunctionCode`, `AccountCategory` / `AccountCategoryIn`, `Search`, `Ordering`.
+`GET /api/budget/accounts/`. Lists budget-account rollups. Typed filters: `FederalAccountSymbol`, `FiscalYear` (+ `FiscalYearGte` / `FiscalYearLte`), `DataThroughPeriod` (+ `DataThroughPeriodGte` / `DataThroughPeriodLte` / `DataThroughPeriodIsNull`), `AgencyCode`, `BEACategory`, `OnOffBudget`, `BureauName`, `AccountTitleContains`, `SubfunctionCode`, `AccountCategory` / `AccountCategoryIn`, `Search`, `Ordering`.
 
 The default ordering is newest fiscal year first, then largest `enacted_ba`, with null `enacted_ba` last; credit financing accounts carry no enacted budget authority, so they sort to the end of each year.
 
-Two fields in the server's default shape describe the row itself:
+Three fields in the server's default shape describe the row itself:
 
+- `data_through_period` is the File A fiscal period (1–12) the account-year's figures run through, served right after `fiscal_year`; the latest fiscal year is partial until it reaches 12, and the value is null when the row has no File A data. Read it with `BudgetDataThroughPeriod(row)`, which returns `(period, ok)` with `ok` false for null. Filter on it with `DataThroughPeriod`, `DataThroughPeriodGte`, `DataThroughPeriodLte` and `DataThroughPeriodIsNull`.
 - `account_category` is an open string: `budgetary` or `credit_financing` today (`BudgetAccountCategoryBudgetary` / `BudgetAccountCategoryCreditFinancing`). Filter on it with `AccountCategory` or `AccountCategoryIn`.
 - `source_anomalies` is a list of problems found in the source data behind the row, `[]` when the row is clean. Decode it with `BudgetSourceAnomalies(row)`, which returns `[]BudgetSourceAnomaly` (`Code`, `Field`, `BoundField`, `Action`, `ReportedValue`, `ServedValue`, `LikelyCause`, `AffectedFields`, `Message`, `Source` with its `Rows`). `Action` is `capped` when the served value was changed (for example a `contract_obligated` capped at `obligated_total`) and `flagged` when it was left as reported. Codes today are `contract_exceeds_obligations`, `assistance_exceeds_obligations` and `contract_without_obligations`; the code is an open string. There is no filter on anomalies.
 

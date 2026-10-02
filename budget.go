@@ -115,10 +115,32 @@ func BudgetSourceAnomalies(row Record) ([]BudgetSourceAnomaly, error) {
 	return out, nil
 }
 
+// BudgetDataThroughPeriod reads a budget account row's data_through_period: the File A fiscal period (1-12) the account-year's figures run through.
+// Below 12 the fiscal year is partial.
+// ok is false when the row has no File A data (null), the shape did not name the field, or the value is not a whole number.
+func BudgetDataThroughPeriod(row Record) (period int, ok bool) {
+	switch v := row["data_through_period"].(type) {
+	case json.Number:
+		n, err := v.Int64()
+		if err != nil {
+			return 0, false
+		}
+		return int(n), true
+	case float64:
+		if v != float64(int(v)) {
+			return 0, false
+		}
+		return int(v), true
+	case int:
+		return v, true
+	}
+	return 0, false
+}
+
 // ListBudgetAccountsOptions filters /api/budget/accounts/ — one row per federal account and fiscal year, covering the budget lifecycle from request through outlay.
 //
 // The record is wide and shape-driven; ShapeBudgetAccountsMinimal is a compact starting point.
-// The server's default shape includes account_category and source_anomalies; decode the latter with BudgetSourceAnomalies.
+// The server's default shape includes data_through_period, account_category and source_anomalies; read them with BudgetDataThroughPeriod and BudgetSourceAnomalies.
 // The default ordering is newest fiscal year first, then largest enacted_ba, with null enacted_ba (credit financing accounts) last.
 // Every dollar and ratio metric also takes exact, __gte and __lte filters, and the taxonomy fields take __in; reach those through Extra.
 type ListBudgetAccountsOptions struct {
@@ -132,6 +154,14 @@ type ListBudgetAccountsOptions struct {
 	FiscalYearGte string
 	// FiscalYearLte is the inclusive upper bound for fiscal_year.
 	FiscalYearLte string
+	// DataThroughPeriod is an exact filter on the File A fiscal period (1-12) the account-year's figures run through.
+	DataThroughPeriod string
+	// DataThroughPeriodGte is the inclusive lower bound for data_through_period.
+	DataThroughPeriodGte string
+	// DataThroughPeriodLte is the inclusive upper bound for data_through_period.
+	DataThroughPeriodLte string
+	// DataThroughPeriodIsNull, when set, keeps only rows with no File A data (true) or only rows with it (false).
+	DataThroughPeriodIsNull *bool
 	// AgencyCode is the owning agency's code (exact).
 	AgencyCode string
 	// BEACategory is the Budget Enforcement Act category, such as discretionary or mandatory (exact).
@@ -167,6 +197,10 @@ func (o *ListBudgetAccountsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "fiscal_year", o.FiscalYear)
 	setIfNotEmpty(q, "fiscal_year__gte", o.FiscalYearGte)
 	setIfNotEmpty(q, "fiscal_year__lte", o.FiscalYearLte)
+	setIfNotEmpty(q, "data_through_period", o.DataThroughPeriod)
+	setIfNotEmpty(q, "data_through_period__gte", o.DataThroughPeriodGte)
+	setIfNotEmpty(q, "data_through_period__lte", o.DataThroughPeriodLte)
+	setIfNotNilBool(q, "data_through_period__isnull", o.DataThroughPeriodIsNull)
 	setIfNotEmpty(q, "agency_code", o.AgencyCode)
 	setIfNotEmpty(q, "bea_category", o.BEACategory)
 	setIfNotEmpty(q, "on_off_budget", o.OnOffBudget)

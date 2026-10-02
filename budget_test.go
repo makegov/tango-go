@@ -2,8 +2,10 @@ package tango
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -83,6 +85,21 @@ func TestListBudgetAccountsFilterMapping(t *testing.T) {
 			opts:    &ListBudgetAccountsOptions{AccountCategoryIn: []string{BudgetAccountCategoryBudgetary, BudgetAccountCategoryCreditFinancing}},
 			wantQS:  map[string]string{"account_category__in": "budgetary,credit_financing"},
 			notInQS: []string{"account_category"},
+		},
+		{
+			name: "data through period filters",
+			opts: &ListBudgetAccountsOptions{
+				DataThroughPeriod:       "9",
+				DataThroughPeriodGte:    "3",
+				DataThroughPeriodLte:    "11",
+				DataThroughPeriodIsNull: boolPtr(false),
+			},
+			wantQS: map[string]string{
+				"data_through_period":         "9",
+				"data_through_period__gte":    "3",
+				"data_through_period__lte":    "11",
+				"data_through_period__isnull": "false",
+			},
 		},
 		{
 			name:   "extra forwards range filters",
@@ -245,6 +262,32 @@ func TestBudgetSourceAnomaliesDecodesListRows(t *testing.T) {
 	}
 	if clean == nil || len(clean) != 0 {
 		t.Errorf("clean row = %#v, want empty non-nil slice", clean)
+	}
+}
+
+func TestBudgetDataThroughPeriod(t *testing.T) {
+	cases := map[string]struct {
+		row    Record
+		want   int
+		wantOK bool
+	}{
+		"json number": {Record{"data_through_period": json.Number("9")}, 9, true},
+		"float":       {Record{"data_through_period": float64(12)}, 12, true},
+		"null":        {Record{"data_through_period": nil}, 0, false},
+		"absent":      {Record{"fiscal_year": 2026}, 0, false},
+		"fractional":  {Record{"data_through_period": 9.5}, 0, false},
+	}
+	for name, tc := range cases {
+		got, ok := BudgetDataThroughPeriod(tc.row)
+		if got != tc.want || ok != tc.wantOK {
+			t.Errorf("%s: got (%d, %v), want (%d, %v)", name, got, ok, tc.want, tc.wantOK)
+		}
+	}
+}
+
+func TestShapeBudgetAccountsMinimalPutsDataThroughPeriodAfterFiscalYear(t *testing.T) {
+	if !strings.Contains(ShapeBudgetAccountsMinimal, "fiscal_year,data_through_period,") {
+		t.Errorf("ShapeBudgetAccountsMinimal = %q, want data_through_period right after fiscal_year", ShapeBudgetAccountsMinimal)
 	}
 }
 
