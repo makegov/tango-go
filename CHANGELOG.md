@@ -7,6 +7,18 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **GSA eBuy** (Tango API 5.1.0): `ListEbuyRequests` / `IterateEbuyRequests` / `GetEbuyRequest` over `/api/ebuy/requests/`, `GetEbuyAttachmentURL` for `/api/ebuy/requests/{rfq_id}/attachments/{doc_seq_num}/download/`, and `GetEbuyAccess` (typed `*EbuyAccess`) for `/api/ebuy/access/`. `ListEbuyRequestsOptions` names every filter the endpoint accepts, and `ShapeEbuyRequestsMinimal` lands in `shapes.go`.
+
+  Requests are scoped to the caller's own linked GSA schedule contracts and require the Pro tier or above. With no linked contract the list is empty rather than an error, which is what `GetEbuyAccess` exists to disambiguate. A request outside scope returns `*NotFoundError`, the same as an unknown id.
+
+  `GetEbuyAttachmentURL` does not follow the API's redirect: it returns the short-lived (about five minutes) presigned URL from the `Location` header. A link entry returns `*EbuyLinkAttachmentError` carrying the link in `URL`. Redirect handling is per request, so the client's shared `*http.Client` is unchanged.
+
+  `status` is frozen at the last-seen state, since a request that closes stops appearing rather than getting a final row; read `last_seen` for staleness. `contract_number` is a filter only and is never returned.
+
+- **`attachments(extracted_text)` — eBuy attachment text** (Tango API 5.9.1). This SDK returns `Record` and passes `Shape` through unchanged, so the leaf needs no code change; it is documented on `GetEbuyRequest` and in `docs/API_REFERENCE.md`. The leaf must be **named**: neither the default shape nor `attachments(*)` carries it, and `ShapeEbuyRequestsMinimal` does not include it. The **key is absent rather than null** on an attachment with no text (a link, an empty scan, or a document not yet extracted).
+
 ## [0.2.0] - 2026-09-23
 
 Pre-1.0 (SemVer 0.x): the breaking changes below ship without a deprecation cycle, and each is marked **Breaking**.
