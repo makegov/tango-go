@@ -17,6 +17,8 @@ This project follows [Semantic Versioning](https://semver.org/).
 
   `status` is frozen at the last-seen state, since a request that closes stops appearing rather than getting a final row; read `last_seen` for staleness. `contract_number` is a filter only and is never returned.
 
+- **`attachments(extracted_text)` — eBuy attachment text** (Tango API 5.9.1). This SDK returns `Record` and passes `Shape` through unchanged, so the leaf needs no code change; it is documented on `GetEbuyRequest` and in `docs/API_REFERENCE.md`. The leaf must be **named**: neither the default shape nor `attachments(*)` carries it, and `ShapeEbuyRequestsMinimal` does not include it. The **key is absent rather than null** on an attachment with no text (a link, an empty scan, or a document not yet extracted).
+
 ## [0.2.0] - 2026-09-23
 
 Pre-1.0 (SemVer 0.x): the breaking changes below ship without a deprecation cycle, and each is marked **Breaking**.

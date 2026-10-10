@@ -648,6 +648,14 @@ Walk every request matching the options.
 
 `GET /api/ebuy/requests/{rfq_id}/`. A request outside your scope returns `*NotFoundError`, the same as an unknown id. The default shape carries every field plus `organization(*)` and `attachments(*)`. An attachment with `is_link: true` is an outbound URL in `doc_path` with no stored document.
 
+> **The document text is `attachments(extracted_text)`** (API 5.9.1+). It must be **named** — neither the default shape nor `attachments(*)` carries it, and no `Shape*` preset includes it. Its key is **absent rather than null** on an attachment with no text: a link, an empty scan, or a document not yet extracted.
+
+```go
+row, err := client.GetEbuyRequest(ctx, "RFQ1835158", &tango.GetEntityOptions{
+    Shape: "rfq_id,attachments(doc_seq_num,doc_name,extracted_text)",
+})
+```
+
 ### `GetEbuyAttachmentURL(ctx, rfqID string, docSeqNum int) (string, error)`
 
 `GET /api/ebuy/requests/{rfq_id}/attachments/{doc_seq_num}/download/`. The API redirects to a presigned URL valid for about five minutes; the SDK does not follow the redirect and returns the target, so fetch it promptly. A link entry returns `*EbuyLinkAttachmentError` (which unwraps to `*ValidationError`) with the link in `URL`; a document not captured yet returns `*NotFoundError`.

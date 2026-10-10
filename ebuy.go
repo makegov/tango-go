@@ -18,6 +18,10 @@ import (
 //   - status is frozen at the last-seen state. eBuy only carries currently-active requests, so a request that closes stops appearing rather than getting a final row; "Open" means "open the last time it was seen". Read last_seen for staleness.
 //   - contract_number is accepted as a filter but never returned in any payload.
 //   - buyer_agency_code and some other buyer and contact fields are sparse on older requests.
+//
+// An attachment's document text is the attachments(extracted_text) shape leaf, from Tango API 5.9.1.
+// It must be named: neither the default shape nor attachments(*) carries it.
+// Its key is absent rather than null on an attachment with no text, which is a link, an empty scan, or a document not yet extracted.
 
 // ListEbuyRequestsOptions filters /api/ebuy/requests/.
 //
@@ -113,6 +117,12 @@ func (c *Client) IterateEbuyRequests(ctx context.Context, opts *ListEbuyRequests
 //
 // A request outside your scope returns *NotFoundError, the same as an id that does not exist.
 // The default shape carries every field plus organization(*) and attachments(*).
+//
+// Neither the default shape nor attachments(*) carries a document's text; name the attachments(extracted_text) leaf to read it (Tango API 5.9.1 and later):
+//
+//	opts := &GetEntityOptions{Shape: "rfq_id,attachments(doc_seq_num,doc_name,extracted_text)"}
+//
+// The extracted_text key is absent rather than null on an attachment with no text (a link, an empty scan, or a document not yet extracted), so test for the key instead of comparing against nil.
 func (c *Client) GetEbuyRequest(ctx context.Context, rfqID string, opts *GetEntityOptions) (Record, error) {
 	if rfqID == "" {
 		return nil, &ValidationError{&APIError{Message: "eBuy request id is required"}}

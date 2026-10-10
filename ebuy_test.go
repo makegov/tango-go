@@ -111,6 +111,34 @@ func TestGetEbuyRequest(t *testing.T) {
 	assertQueryContains(t, capturedURL, map[string]string{"shape": "rfq_id,attachments(*)"}, nil)
 }
 
+func TestGetEbuyRequestNamedExtractedTextLeaf(t *testing.T) {
+	const shape = "rfq_id,attachments(doc_seq_num,doc_name,extracted_text)"
+	var capturedURL string
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		capturedURL = r.URL.RequestURI()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"rfq_id":"RFQ1835158","attachments":[` +
+			`{"doc_seq_num":1,"doc_name":"sow.pdf","extracted_text":"Statement of work"},` +
+			`{"doc_seq_num":2,"doc_name":"portal link"}]}`))
+	})
+	rec, err := c.GetEbuyRequest(context.Background(), "RFQ1835158", &GetEntityOptions{Shape: shape})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertQueryContains(t, capturedURL, map[string]string{"shape": shape}, nil)
+
+	attachments, ok := rec["attachments"].([]any)
+	if !ok || len(attachments) != 2 {
+		t.Fatalf("expected two attachments, got %v", rec["attachments"])
+	}
+	if got := attachments[0].(map[string]any)["extracted_text"]; got != "Statement of work" {
+		t.Fatalf("expected the extracted text, got %v", got)
+	}
+	if _, present := attachments[1].(map[string]any)["extracted_text"]; present {
+		t.Fatalf("expected no extracted_text key on an attachment without text, got %v", attachments[1])
+	}
+}
+
 func TestGetEbuyRequestOutOfScopeIsNotFound(t *testing.T) {
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
