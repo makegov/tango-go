@@ -354,3 +354,45 @@ func TestParseIntHeaderInvalid(t *testing.T) {
 		t.Errorf("expected -1 for non-numeric header, got %d", got)
 	}
 }
+
+func TestUnmappedStatusErrorCarriesServerReason(t *testing.T) {
+	const reason = "The 'psc' filter requires a Small plan or higher."
+	cases := []struct {
+		name   string
+		status int
+		body   string
+		want   string
+	}{
+		{"detail string", 403, `{"detail":"G2X shape fields are not allowed for your account."}`, "API request failed with status 403: G2X shape fields are not allowed for your account."},
+		{"flat tier gate", 403, `{"error":"` + reason + `","code":"tier_required"}`, "API request failed with status 403: " + reason},
+		{"nested tier gate", 403, `{"detail":{"error":"` + reason + `","code":"tier_required"}}`, "API request failed with status 403: " + reason},
+		{"JSON without a reason", 403, `{"code":"forbidden"}`, "API request failed with status 403"},
+		{"non-JSON body", 502, `<html>Bad Gateway</html>`, "API request failed with status 502"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tc.status)
+				w.Write([]byte(tc.body))
+			}))
+			t.Cleanup(srv.Close)
+
+			c := NewClient(WithAPIKey("k"), WithBaseURL(srv.URL), WithRetries(0))
+			_, err := c.ListAgencies(context.Background(), nil)
+			var apiErr *APIError
+			if !errors.As(err, &apiErr) {
+				t.Fatalf("expected *APIError, got %T: %v", err, err)
+			}
+			if apiErr.Message != tc.want {
+				t.Errorf("Message = %q, want %q", apiErr.Message, tc.want)
+			}
+			if strings.HasPrefix(tc.body, "{") {
+				if _, ok := apiErr.ResponseData.(map[string]any); !ok {
+					t.Errorf("ResponseData = %#v, want the parsed body", apiErr.ResponseData)
+				}
+			} else if apiErr.ResponseData != nil {
+				t.Errorf("ResponseData = %#v, want nil for a non-JSON body", apiErr.ResponseData)
+			}
+		})
+	}
+}

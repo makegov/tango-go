@@ -7,7 +7,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-Catches the SDK up to Tango API 5.11.0, matching tango-python 1.18.0.
+Catches the SDK up to Tango API 5.11.0, matching tango-python 1.18.1.
 
 ### Added
 
@@ -49,6 +49,10 @@ Catches the SDK up to Tango API 5.11.0, matching tango-python 1.18.0.
 ### Deprecated
 
 - **`awardee_count` on vehicles** is deprecated by the Tango API as an alias of `order_winner_count`, and is removed at the API's next major version. The vehicle shapes still request it so existing readers keep working; read `order_winner_count` instead.
+
+### Fixed
+
+- **API errors now carry the server's reason.** A 403 or other non-2xx response the SDK had no dedicated error type for returned an `*APIError` whose `Message` was only `API request failed with status 403`, so a caller refused for a G2X-only shape field or a plan-gated filter couldn't tell why. `Message` now ends with the API's own explanation (`API request failed with status 403: G2X shape fields are not allowed for your account.`), read from the body's `error`, `message` or `detail`, including one nested under `detail`. The parsed body stays on `ResponseData`. Non-JSON bodies, such as a proxy's 502 page, keep the old message.
 
 ## [0.2.0] - 2026-09-23
 
