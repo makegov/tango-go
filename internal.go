@@ -3,9 +3,14 @@ package tango
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
+
+// countTypeHeader says whether a list response's count is exact or a query-planner estimate.
+const countTypeHeader = "X-Results-CountType"
 
 // ListOptions is the shared embed for every list endpoint. Per-resource
 // options structs embed this so callers can set pagination + shaping on
@@ -85,11 +90,17 @@ func setIfNotNilBool(q url.Values, key string, value *bool) {
 // listGeneric runs a GET against a list endpoint and returns a typed
 // PaginatedResponse. Used by every list method on Client.
 func listGeneric[T any](ctx context.Context, c *Client, path string, q url.Values) (*PaginatedResponse[T], error) {
-	raw, err := c.do(ctx, requestSpec{method: "GET", path: path, query: q})
+	var header http.Header
+	raw, err := c.do(ctx, requestSpec{method: "GET", path: path, query: q, respHeader: &header})
 	if err != nil {
 		return nil, err
 	}
-	return decodePaginated[T](raw)
+	out, err := decodePaginated[T](raw)
+	if err != nil {
+		return nil, err
+	}
+	out.CountType = strings.ToLower(header.Get(countTypeHeader))
+	return out, nil
 }
 
 // getGeneric runs a GET against a detail endpoint and decodes into T.

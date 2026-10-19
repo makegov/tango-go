@@ -33,6 +33,7 @@ github.com/makegov/tango-go            (package tango)
 ├── otas.go                # OTAs / OTIDVs / OTIDV Awards (+ iterators)
 ├── protests.go            # Protests (typed *ProtestRecord on GetProtest)
 ├── contract_appeals.go    # Contract appeals (typed *ContractAppealRecord)
+├── federal_register.go    # Federal Register documents
 ├── sled.go                # State, local and education procurement
 ├── budget.go              # Budget accounts + quarters + recipients
 ├── exclusions.go          # SAM exclusions
@@ -110,7 +111,7 @@ Every typed child implements `Unwrap() error`, so `errors.As(err, &tango.NotFoun
 
 ### Pagination
 
-`PaginatedResponse[T]` is the standard envelope (count, next, previous, page_metadata, results). The `Cursor` field is extracted from the `next` URL for keyset-paginated endpoints.
+`PaginatedResponse[T]` is the standard envelope (count, next, previous, page_metadata, meta, results), plus `CountType` from each response's `X-Results-CountType` header. The `Cursor` field is extracted from the `next` URL for keyset-paginated endpoints.
 
 `Iterator[T]` walks every page of a paginated endpoint. Its interface is the canonical Go iteration pattern:
 

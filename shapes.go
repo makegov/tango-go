@@ -57,6 +57,21 @@ const (
 	ShapeEbuyRequestsMinimal = "rfq_id,request_type,title,schedule,sin,status,buyer_name,buyer_agency," +
 		"buyer_agency_code,reference_number,issue_date,close_date,attachment_count,link_count,last_seen"
 
+	// ShapeFederalRegisterMinimal — the API's default list shape for ListFederalRegisterDocuments.
+	ShapeFederalRegisterMinimal = "uuid,document_number,publication_date,type,subtype,title,abstract,action," +
+		"agencies,cfr_references,citation,significant,comments_close_on,effective_on," +
+		"html_url,pdf_url"
+
+	// ShapeFederalRegisterComprehensive — the API's default detail shape for GetFederalRegisterDocument.
+	//
+	// Deliberately does not name full_text, which can run to several MB; name it explicitly when you want the document's text.
+	ShapeFederalRegisterComprehensive = "uuid,document_number,publication_date,type,subtype,title,abstract,action," +
+		"agencies,cfr_references,citation,significant,comments_close_on,effective_on," +
+		"html_url,pdf_url,dates,signing_date,start_page,end_page,volume,docket_ids," +
+		"dockets,regulation_id_numbers,topics,correction_of,corrections," +
+		"executive_order_number,presidential_document_number,proclamation_number," +
+		"comment_url,regulations_dot_gov_url,raw_text_url,body_html_url"
+
 	// ShapeGrantsMinimal — default for ListGrants.
 	ShapeGrantsMinimal = "grant_id,opportunity_number,title,status(*),agency_code"
 

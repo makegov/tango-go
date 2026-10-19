@@ -22,6 +22,8 @@ type ListExclusionsOptions struct {
 	ExclusionProgram    string
 	ExcludingAgencyCode string
 	ExcludingAgencyName string
+	// Agency is the excluding agency as a Tango organization: a name, abbreviation, code or organization key (for example "EPA"). It matches the whole organization subtree, so a department includes its sub-agencies; join several with "|".
+	Agency string
 
 	// UEI matches the exclusion's own UEI; most exclusions name individuals and carry none.
 	UEI      string
@@ -60,6 +62,7 @@ func (o *ListExclusionsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "exclusion_program", o.ExclusionProgram)
 	setIfNotEmpty(q, "excluding_agency_code", o.ExcludingAgencyCode)
 	setIfNotEmpty(q, "excluding_agency_name", o.ExcludingAgencyName)
+	setIfNotEmpty(q, "agency", o.Agency)
 	setIfNotEmpty(q, "uei", o.UEI)
 	setIfNotEmpty(q, "cage_code", o.CageCode)
 	setIfNotEmpty(q, "npi", o.NPI)

@@ -2,7 +2,7 @@
 
 Dynamic response shaping is the Tango API's signature feature: instead of always receiving every field on a resource, you tell the server exactly which fields you want, and it returns only those. Payloads stay small, responses stay fast, and the SDK doesn't have to chase schema drift.
 
-This guide explains the shape grammar, the 21 built-in `Shape*` constants, the `Flat` / `FlatLists` modifiers, and the trade-offs to think about when picking a shape.
+This guide explains the shape grammar, the built-in `Shape*` constants, the `Flat` / `FlatLists` modifiers, and the trade-offs to think about when picking a shape.
 
 ## What is a shape?
 
@@ -58,7 +58,7 @@ page, err := client.ListContracts(ctx, &tango.ListContractsOptions{
 })
 ```
 
-For convenience, the SDK ships 21 preset constants. Use them when you don't need a custom selector:
+For convenience, the SDK ships preset constants. Use them when you don't need a custom selector:
 
 ```go
 page, _ := client.ListContracts(ctx, &tango.ListContractsOptions{
@@ -68,7 +68,7 @@ page, _ := client.ListContracts(ctx, &tango.ListContractsOptions{
 
 ## Shape preset constants
 
-All 21 constants live in `shapes.go`. They mirror the `ShapeConfig.*` enums in `tango-node` and `tango-python` exactly — same names, same field selectors, same intent.
+All the constants live in `shapes.go`. They mirror the `ShapeConfig.*` enums in `tango-node` and `tango-python` exactly — same names, same field selectors, same intent.
 
 | Constant | Intended use | Notes |
 | -------- | ------------ | ----- |
@@ -79,6 +79,8 @@ All 21 constants live in `shapes.go`. They mirror the `ShapeConfig.*` enums in `
 | `ShapeOpportunitiesMinimal` | `ListOpportunities` | opportunity_id, title, solicitation_number, response_deadline, active |
 | `ShapeNoticesMinimal` | `ListNotices` | notice_id, title, solicitation_number, posted_date |
 | `ShapeProtestsMinimal` | `ListProtests` | case_id, case_number, title, source_system, outcome, filed_date |
+| `ShapeFederalRegisterMinimal` | `ListFederalRegisterDocuments` | uuid, document_number, publication_date, type, title, abstract, agencies, CFR references, comment and effective dates, URLs |
+| `ShapeFederalRegisterComprehensive` | `GetFederalRegisterDocument` | adds dates, pages, dockets, RINs, topics, corrections and presidential-document numbers; never `full_text` |
 | `ShapeGrantsMinimal` | `ListGrants` | grant_id, opportunity_number, title, status, agency_code |
 | `ShapeIDVsMinimal` | `ListIDVs` | key, piid, award_date, recipient (name+UEI), value, obligated, idv_type |
 | `ShapeIDVsComprehensive` | `GetIDV` | full IDV envelope incl. competition, legislative_mandates, transactions, subawards summary |

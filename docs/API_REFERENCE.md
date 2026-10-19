@@ -10,6 +10,29 @@ import "github.com/makegov/tango-go"
 client := tango.NewClient(tango.WithAPIKey(os.Getenv("TANGO_API_KEY")))
 ```
 
+**List responses.** Every `*PaginatedResponse[Record]` carries `Count`, `Next`, `Previous`, `Cursor`, `Results` and two fields read from the response itself:
+
+- `CountType` is `"exact"` or `"approximate"`, from the `X-Results-CountType` header, and empty when the API does not send it. Past 1,000 matches the contract, IDV, opportunity and notice lists may return a query-planner estimate as `Count`, which can be well off. It is taken from each response, so concurrent calls on one client cannot see each other's value the way `LastResponseHeaders` can.
+- `Meta` is the response-level `meta` block, nil on most responses. It carries agency-filter diagnostics: `meta.resolved_filters` maps each agency filter to what its `|`-separated tokens resolved to, and `meta.warnings` lists notes about tokens that were dropped or matched loosely. Each entry that resolved also says how its token matched in `matched_by` (Tango API 5.9.0+): `key` (an organization UUID), `code` (a 3-digit CGAC or 4-digit FPDS code), `name` (the organization's name, including a department's everyday name, a spelling variant or a rename), `alias` (an abbreviation or the organization's own alias) or `fuzzy` (a looser text match, worth checking against the resolved name). An entry that did not resolve has no `matched_by`.
+
+Three accessors read `Meta` and return empty rather than failing when it is absent or malformed: `AgencyWarnings()` (the API's notes), `UnresolvedAgencyTokens()` (tokens that matched nothing, per filter) and `ResolvedAgencies()` (the organization each token did match, per filter). A token can resolve to an organization you did not intend and quietly scope the query to that subtree, and only `ResolvedAgencies()` can show that, since nothing was dropped.
+
+```go
+page, err := client.ListContracts(ctx, &tango.ListContractsOptions{AwardingAgency: "HUD|NOTANAGENCY"})
+if err != nil {
+    return err
+}
+if dropped := page.UnresolvedAgencyTokens(); len(dropped) > 0 {
+    return fmt.Errorf("agency tokens matched nothing: %v", dropped)
+}
+for _, org := range page.ResolvedAgencies()["awarding_agency"] {
+    fmt.Println(org["name"])
+}
+if page.CountType == "approximate" {
+    fmt.Println("count is an estimate:", page.Count)
+}
+```
+
 ## Contents
 
 - [Agencies](#agencies)
@@ -25,6 +48,7 @@ client := tango.NewClient(tango.WithAPIKey(os.Getenv("TANGO_API_KEY")))
 - [Opportunities / Notices / Forecasts / Grants](#opportunities--notices--forecasts--grants)
 - [Protests](#protests)
 - [Contract appeals](#contract-appeals)
+- [Federal Register](#federal-register)
 - [State \& Local (SLED)](#state--local-sled)
 - [Exclusions](#exclusions)
 - [DIBBS](#dibbs)
@@ -160,6 +184,10 @@ page, _ := client.ListContracts(ctx, &tango.ListContractsOptions{
 
 When both an alias and a canonical field are set, the alias wins (mirrors Node).
 
+`RecipientUEI` / `UEI` accepts several UEIs joined by `|` (Tango API 5.11.0+), returning awards to any of them, up to 500 per request. The same holds for `UEI` on `ListIDVsOptions`, `ListOTAsOptions` and `ListOTIDVsOptions`.
+
+`CommercialItemAcquisitionProcedures` (Tango API 5.10.0+) filters by the FPDS commercial item acquisition procedures code, case-insensitive: `A` (commercial products/services), `B` (products or services pursuant to FAR 12.102(f)), `C` (services pursuant to FAR 12.102(g)), `D` (commercial procedures not used) or `E` (DoD Section 803 Commercial Solutions Opening). Join codes with `|` for OR (for example `"A|E"`); an unknown or multi-character code matches nothing. It is on `ListContractsOptions` and `ListIDVsOptions` (so also `ListIDVAwards` and `ListIDVChildIDVs`); the API does not offer it on OTAs or OTIDVs.
+
 **Sorting.** Two ways:
 
 ```go
@@ -187,6 +215,24 @@ for c, err := range client.IterateContracts(ctx, opts).Seq() {
 ### `GetContract(ctx, key string, *GetEntityOptions) (Record, error)`
 
 `GET /api/contracts/{key}/`. Fetches a single contract record. Validates `key` non-empty client-side.
+
+**Obligations by fiscal year — `obligations_by_fiscal_year(fiscal_year, obligated)`** (Tango API 5.11.0). The award's obligations per federal fiscal year, oldest first, each rounded to cents, on contracts, IDVs, OTAs and OTIDVs (list, detail and nested award shapes). No `Shape*` preset names it. `tango.ObligationsByFiscalYear(row)` decodes it into `[]FiscalYearObligation` (`FiscalYear *int`, `Obligated *float64`), returning nil when the key is absent or null. It is **always null on IDVs and OTIDVs**, whose transactions report a running lifetime total rather than each action's obligation, and null on a contract or OTA with no dated transaction.
+
+```go
+page, err := client.ListContracts(ctx, &tango.ListContractsOptions{
+    ListOptions: tango.ListOptions{Shape: "key,piid,obligated,obligations_by_fiscal_year(fiscal_year,obligated)"},
+})
+if err != nil {
+    return err
+}
+years, err := tango.ObligationsByFiscalYear(page.Results[0])
+if err != nil {
+    return err
+}
+for _, y := range years {
+    fmt.Println(*y.FiscalYear, *y.Obligated)
+}
+```
 
 ### `ListContractSubawards(ctx, key string, *EntitySubawardsOptions) (*PaginatedResponse[Record], error)`
 
@@ -236,6 +282,8 @@ Walks every budget-account rollup matching opts.
 ### `GetBudgetAccount(ctx, id string, *GetEntityOptions) (Record, error)`
 
 `GET /api/budget/accounts/{id}/`. One account-year by its numeric id. Name `appendix(*)` in the shape to include the appendix object-class breakdown.
+
+`Agency` on `ListBudgetAccountsOptions` (Tango API 5.3.0+) takes a Tango agency name, abbreviation, code or organization key (for example `EPA`) that matches the whole organization subtree, so a department includes its sub-agencies; join several with `|`. Budget-account shapes also accept `organization_id` and the `organization(...)` expand, which carries `agency_code`, `agency_name`, `department_code`, `department_name`, `office_code`, `office_name` and `organization_id`; no `Shape*` preset names them.
 
 ### `GetBudgetAccountQuarters(ctx, id string, *BudgetAccountQuartersOptions) (*PaginatedResponse[Record], error)`
 
@@ -399,7 +447,33 @@ All return `*PaginatedResponse[Record]`. Empty UEI is rejected client-side as `*
 
 ### `ListOpportunities(ctx, *ListOpportunitiesOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/opportunities/`. SAM.gov opportunities. Filters: `Active *bool`, `Agency`, `FirstNoticeDate[After/Before]`, `LastNoticeDate[After/Before]`, `NAICS`, `NoticeType`, `Ordering`, `PlaceOfPerformance`, `PSC`, `ResponseDeadline[After/Before]`, `Search`, `SetAside`, `SolicitationNumber`, `OpportunityID`.
+`GET /api/opportunities/`. SAM.gov opportunities. Filters: `Active *bool`, `Agency`, `FirstNoticeDate[After/Before]`, `LastNoticeDate[After/Before]`, `NAICS`, `NoticeType`, `Ordering`, `PlaceOfPerformance`, `PSC`, `ResponseDeadline[After/Before]`, `Search`, `SetAside`, `SolicitationNumber`, `OpportunityID`, `Awarded *bool`, `AwardeeUEI`.
+
+**Award fields** (Tango API 5.5.0). None is in a `Shape*` preset, so name the fields you want:
+
+```go
+opp, err := client.GetOpportunity(ctx, opportunityID, &tango.GetEntityOptions{
+    Shape: "opportunity_id,title,awarded,award_date,award_amount,awardee,awardee_uei," +
+        "award_count,solicitation_opportunity_id," +
+        "awards(opportunity_id,notice_id,award_number,award_date,award_amount,awardee,awardee_uei)",
+})
+```
+
+- `award_date`, `award_amount`, `awardee` and `awardee_uei` are filled only where SAM.gov posted an award notice; elsewhere they are null. `award_amount` is the text SAM.gov published, not a number.
+- SAM.gov often posts an award as its own opportunity. When that award notice references its solicitation, the award's `solicitation_opportunity_id` points back to the solicitation, and the solicitation's `awards(...)` lists up to ten of the most recent linked awards; `award_count` is the full count. An award notice that does not reference its solicitation is not linked.
+- `awarded` is true when the opportunity has an award of its own or has linked awards.
+- The `Awarded` and `AwardeeUEI` filters (`AwardeeUEI` is case-insensitive; join several with `|`) search every opportunity, not just active ones, so set `Active` to narrow to open opportunities.
+- Notices accept `award_date`, `award_amount`, `awardee` and `awardee_uei` in `Shape` too.
+
+**Attachment counts — `meta(attachments_count, files_count, links_count)`** (Tango API 5.9.0). An attachment's `type` is `file` (a document attached to the notice; only files have extracted text) or `link` (a URL the notice lists). `meta.files_count` counts the files and `meta.links_count` the links. `meta.attachments_count` still counts every attachment, links included, and an attachment of any other type counts only there, so files plus links need not equal it. **Null means unknown, not zero**: both new fields are null until the record has been counted. No `Shape*` preset names them. The opportunity embedded in a vehicle accepts them too: `opportunity(meta(files_count,links_count))`.
+
+**Attachment extraction status — `attachments(extraction_status)`** (Tango API 5.11.0) on opportunities and notices reports `pending`, `extracting`, `completed`, `failed` or `unsupported` for each attachment, so you can tell why `extracted_text` is missing. It is returned only when named; `attachments(*)` does not carry it. `unsupported` marks a file type that cannot be extracted (for example ZIP or DWG); `failed` is a real extraction failure, though older files may still read `failed`.
+
+```go
+opp, err := client.GetOpportunity(ctx, opportunityID, &tango.GetEntityOptions{
+    Shape: "opportunity_id,meta(attachments_count,files_count,links_count),attachments(name,type,extraction_status)",
+})
+```
 
 ### `IterateOpportunities(ctx, *ListOpportunitiesOptions) *Iterator[Record]`
 
@@ -410,6 +484,8 @@ All return `*PaginatedResponse[Record]`. Empty UEI is rejected client-side as `*
 ### `ListNotices(ctx, *ListNoticesOptions) (*PaginatedResponse[Record], error)`
 
 `GET /api/notices/`. Filters: `Active *bool`, `Agency`, `Department`, `Office`, `NAICS`, `NoticeType`, `NoticeID`, `PostedDate[After/Before]`, `PSC`, `ResponseDeadline[After/Before]`, `Search`, `SetAside`, `SolicitationNumber`.
+
+Notice shapes accept `attachment_count`, `file_count` and `link_count` (Tango API 5.9.0), with the same file/link split and the same null-means-unknown rule as `meta.files_count` / `meta.links_count` on opportunities, and `attachments(extraction_status)` (Tango API 5.11.0). The API returns the three counts when no shape is sent, but `ShapeNoticesMinimal` does not name them.
 
 > **No ordering.** The notices viewset rejects every `?ordering=` value, so `ListNoticesOptions` deliberately omits an `Ordering` field (mirrors Python and Node).
 
@@ -503,6 +579,53 @@ Alerts on this resource use query type `contract_appeal` and deliver `alerts.con
 
 ---
 
+## Federal Register
+
+Rules, proposed rules, notices and presidential documents published in the Federal Register since 1994 (Tango API 5.3.0+).
+
+### `ListFederalRegisterDocuments(ctx, *ListFederalRegisterDocumentsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/federal_register/`. Filters, every one the endpoint accepts:
+
+- `Search`: ranked full-text search over the title, abstract and action; wrap it in double quotes for a phrase.
+- `DocumentNumber`: exact FR document number (for example `2016-31922`); join several with `|`. A number the Federal Register reused before 2016 matches every document that carries it.
+- `Type`: `Notice`, `Rule`, `Proposed Rule`, `Presidential Document`, `Correction`, `Sunshine Act Document` or `Uncategorized Document`, case-insensitive; join several with `|`. Documents published before 2008 are mostly `Uncategorized Document`.
+- `Agency`: a Tango organization name, abbreviation, code or organization key (for example `EPA`), matching a document when any agency it lists falls within that organization, so a department includes its sub-agencies; join several with `|`.
+- `FRAgency`: the Federal Register's own agency slug (for example `environmental-protection-agency`); join several with `|`.
+- `PublicationDate[After/Before]`, `EffectiveOn[After/Before]`, `CommentsCloseOn[After/Before]`: inclusive dates (`YYYY-MM-DD`).
+- `CommentsOpen *bool`: true for documents whose comment period closes today or later, false for those already closed. Documents with no comment deadline match neither.
+- `CFRTitle` (for example `40`) and `CFRPart` (for example `52`); `CFRPart` requires `CFRTitle`, and both must match the same CFR reference.
+- `Significant *bool`: significant under Executive Order 12866.
+- `RIN`: a Regulation Identifier Number (for example `2060-AV16`); join several with `|`.
+- `ExecutiveOrderNumber`: exact executive order number.
+- `Ordering`: `publication_date` (the default, as `-publication_date`), `effective_on`, `comments_close_on`, `document_number` or `rank`. `rank` requires a non-empty `Search`.
+
+`ShapeFederalRegisterMinimal` is the API's default list shape.
+
+### `IterateFederalRegisterDocuments(ctx, *ListFederalRegisterDocumentsOptions) *Iterator[Record]`
+
+Walk every document matching the options.
+
+### `GetFederalRegisterDocument(ctx, documentUUID string, *GetEntityOptions) (Record, error)`
+
+`GET /api/federal_register/{uuid}/`. The route takes the document's `uuid`, **not its `document_number`**, which is not unique on its own: the Federal Register reused some numbers before 2016. Look a document up by number with `ListFederalRegisterDocuments` and `DocumentNumber`.
+
+`full_text` (the document's plain text) is returned only when named in `Shape`, and neither `ShapeFederalRegisterMinimal` nor `ShapeFederalRegisterComprehensive` names it, since it can run to several MB.
+
+```go
+page, err := client.ListFederalRegisterDocuments(ctx, &tango.ListFederalRegisterDocumentsOptions{DocumentNumber: "2016-31922"})
+if err != nil {
+    return err
+}
+doc, err := client.GetFederalRegisterDocument(ctx, page.Results[0]["uuid"].(string), &tango.GetEntityOptions{
+    Shape: tango.ShapeFederalRegisterComprehensive + ",full_text",
+})
+```
+
+Alerts on this resource use query type `federal_register` and deliver `alerts.federal_register.match`; see [`WEBHOOKS.md`](WEBHOOKS.md).
+
+---
+
 ## State & Local (SLED)
 
 **Beta.** State, local and education procurement — solicitations that never appear on SAM.gov because they were never federal. Coverage is partial and grows one jurisdiction at a time.
@@ -583,7 +706,9 @@ SAM.gov exclusions: debarments, suspensions and other ineligibility actions.
 
 ### `ListExclusions(ctx, *ListExclusionsOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/exclusions/`. Filters: `Active *bool`, `Delisted *bool`, `ClassificationType`, `ExclusionType`, `ExclusionProgram`, `ExcludingAgencyCode`, `ExcludingAgencyName`, `UEI`, `CageCode`, `NPI`, `EntityUEI`, `ActivateDate[After/Before]`, `TerminationDate[After/Before]`, `UpdateDate[After/Before]`, `Search`, `Ordering`.
+`GET /api/exclusions/`. Filters: `Active *bool`, `Delisted *bool`, `ClassificationType`, `ExclusionType`, `ExclusionProgram`, `ExcludingAgencyCode`, `ExcludingAgencyName`, `UEI`, `CageCode`, `NPI`, `EntityUEI`, `ActivateDate[After/Before]`, `TerminationDate[After/Before]`, `UpdateDate[After/Before]`, `Agency`, `Search`, `Ordering`.
+
+`Agency` (Tango API 5.3.0+) scopes by the excluding agency as a Tango organization: a Tango agency name, abbreviation, code or organization key (for example `EPA`) that matches the whole organization subtree, so a department includes its sub-agencies; join several with `|`. Exclusion shapes also accept `organization_id` and the `organization(...)` expand (the same seven keys as on budget accounts).
 
 > **`Active` is derived at query time.** An exclusion is active when it is not delisted, has activated and has not terminated. Reaching a termination date changes the answer without any write, so it fires no alert. `Delisted` is different: it means SAM lifted or withdrew the exclusion.
 
@@ -631,7 +756,7 @@ SBIR and STTR topics, and the solicitation cycles they are released under.
 
 ### `ListSbirTopics(ctx, *ListSbirTopicsOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/sbir/topics/`. Filters: `Activity` (`"open"`, `"closed"` or `"unknown"`), `Agency` (partial match on the raw agency text, not organization-resolved), `TopicNumber`, `SolicitationNumber`, `Year`, `DocSource`, `CloseDate[After/Before]`, `OpenDate[After/Before]`, `ReleaseDate[After/Before]`, `Search`, `Ordering`.
+`GET /api/sbir/topics/`. Filters: `Activity` (`"open"`, `"closed"` or `"unknown"`), `Agency` (partial match on the raw agency text, not organization-resolved), `TopicNumber`, `SolicitationNumber`, `CycleName` (the DSIP solicitation cycle, exact, for example `DOD_SBIR_2026_P1_CBZ`; Tango API 5.3.1+, which also serves `cycle_name` on topics), `Year`, `DocSource`, `CloseDate[After/Before]`, `OpenDate[After/Before]`, `ReleaseDate[After/Before]`, `Search`, `Ordering`.
 
 ### `ListSbirSolicitations(ctx, *ListSbirSolicitationsOptions) (*PaginatedResponse[Record], error)`
 
@@ -644,6 +769,8 @@ Walk every row matching the options.
 ### `GetSbirTopic(ctx, topicID string, *GetEntityOptions) (Record, error)` / `GetSbirSolicitation(ctx, solicitationID string, *GetEntityOptions) (Record, error)`
 
 `GET /api/sbir/topics/{topic_id}/` and `GET /api/sbir/solicitations/{solicitation_id}/`.
+
+Topic and solicitation shapes accept the `organization(...)` expand (the same seven keys as on budget accounts).
 
 ---
 
@@ -695,9 +822,11 @@ row, err := client.GetEbuyRequest(ctx, "RFQ1835158", &tango.GetEntityOptions{
 
 `GET /api/itdashboard/`. Federal IT investments. **Filters are tier-gated** by the API:
 
-- Free: `Search`
+- Free: `Search`, `AgencyName`, `Agency`, `PreviousUII`
 - Pro: `AgencyCode`, `TypeOfInvestment`, `UpdatedTime[After/Before]`
-- Business+: `AgencyName`, `CIORating`, `CIORatingMax`, `PerformanceRisk`
+- Business+: `CIORating`, `CIORatingMax`, `PerformanceRisk`
+
+`Agency` (Tango API 5.3.0+) takes a Tango agency name, abbreviation, code or organization key (for example `EPA`) that matches the whole organization subtree, so a department includes its sub-agencies; join several with `|`.
 
 `PreviousUII` finds the investment or investments that superseded a retired UII.
 
@@ -791,9 +920,9 @@ Empty `OwnerID`, non-positive `Months`, empty `PeriodGrouping`, or unknown `Owne
 
 `GET /api/naics/{code}/`.
 
-### `ListPSC(ctx, *ListOptions) (*PaginatedResponse[Record], error)`
+### `ListPSC(ctx, *ListPSCOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/psc/`.
+`GET /api/psc/`. `HasAwards *bool`: true keeps only codes with contract award history.
 
 ### `GetPSC(ctx, code string) (Record, error)`
 

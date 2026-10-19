@@ -20,8 +20,10 @@ type ListSbirTopicsOptions struct {
 	Agency             string
 	TopicNumber        string
 	SolicitationNumber string
-	Year               int
-	DocSource          string
+	// CycleName is the topic's DSIP solicitation cycle, exact (for example "DOD_SBIR_2026_P1_CBZ"); Tango API 5.3.1 and later.
+	CycleName string
+	Year      int
+	DocSource string
 
 	// Date bounds (wire format: YYYY-MM-DD).
 	CloseDateAfter    string
@@ -48,6 +50,7 @@ func (o *ListSbirTopicsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "agency", o.Agency)
 	setIfNotEmpty(q, "topic_number", o.TopicNumber)
 	setIfNotEmpty(q, "solicitation_number", o.SolicitationNumber)
+	setIfNotEmpty(q, "cycle_name", o.CycleName)
 	setIfNonZeroInt(q, "year", o.Year)
 	setIfNotEmpty(q, "doc_source", o.DocSource)
 	setIfNotEmpty(q, "close_date_after", o.CloseDateAfter)

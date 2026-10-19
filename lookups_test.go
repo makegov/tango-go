@@ -276,7 +276,7 @@ func TestListSubawardsFilterMapping(t *testing.T) {
 func TestListPSCWithOpts(t *testing.T) {
 	var capturedURL string
 	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
-	_, _ = c.ListPSC(context.Background(), &ListOptions{Limit: 10})
+	_, _ = c.ListPSC(context.Background(), &ListPSCOptions{ListOptions: ListOptions{Limit: 10}})
 	assertQueryContains(t, capturedURL, map[string]string{"limit": "10"}, nil)
 }
 
@@ -301,4 +301,16 @@ func TestGetSubawardBuildsPath(t *testing.T) {
 	c, _ := newTestClient(t, captureURLRecordHandler(&capturedURL))
 	_, _ = c.GetSubaward(context.Background(), "SUB-1", nil)
 	assertPathContains(t, capturedURL, "/api/subawards/SUB-1/")
+}
+
+func TestListPSCForwardsHasAwards(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+
+	_, _ = c.ListPSC(context.Background(), &ListPSCOptions{HasAwards: boolPtr(false)})
+	assertPathContains(t, capturedURL, "/api/psc/")
+	assertQueryContains(t, capturedURL, map[string]string{"has_awards": "false"}, nil)
+
+	_, _ = c.ListPSC(context.Background(), &ListPSCOptions{ListOptions: ListOptions{Limit: 5}})
+	assertQueryContains(t, capturedURL, map[string]string{"limit": "5"}, []string{"has_awards"})
 }

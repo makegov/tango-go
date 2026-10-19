@@ -114,3 +114,21 @@ func TestListIDVSubresourcePathEscape(t *testing.T) {
 	_, _ = c.ListIDVAwards(context.Background(), "KEY WITH SPACE", nil)
 	assertPathContains(t, capturedURL, "KEY%20WITH%20SPACE")
 }
+
+func TestIDVListsForwardCommercialItemAcquisitionProcedures(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	opts := &ListIDVsOptions{CommercialItemAcquisitionProcedures: "A|E"}
+
+	_, _ = c.ListIDVs(context.Background(), opts)
+	assertPathContains(t, capturedURL, "/api/idvs/")
+	assertQueryContains(t, capturedURL, map[string]string{"commercial_item_acquisition_procedures": "A|E"}, nil)
+
+	_, _ = c.ListIDVAwards(context.Background(), "IDV-1", opts)
+	assertPathContains(t, capturedURL, "/api/idvs/IDV-1/awards/")
+	assertQueryContains(t, capturedURL, map[string]string{"commercial_item_acquisition_procedures": "A|E"}, nil)
+
+	_, _ = c.ListIDVChildIDVs(context.Background(), "IDV-1", opts)
+	assertPathContains(t, capturedURL, "/api/idvs/IDV-1/idvs/")
+	assertQueryContains(t, capturedURL, map[string]string{"commercial_item_acquisition_procedures": "A|E"}, nil)
+}

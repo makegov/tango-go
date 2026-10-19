@@ -114,6 +114,8 @@ type requestSpec struct {
 
 	// noRedirect stops the client at a 3xx and returns its Location header as the body instead of following it.
 	noRedirect bool
+	// respHeader, when set, receives the headers of the successful response, so a caller can read them without racing other requests on the shared client.
+	respHeader *http.Header
 }
 
 // do executes a single HTTP request with retries. The returned []byte is
@@ -243,6 +245,9 @@ func (c *Client) attempt(ctx context.Context, spec requestSpec) ([]byte, error) 
 	}
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		if spec.respHeader != nil {
+			*spec.respHeader = resp.Header.Clone()
+		}
 		// Some endpoints (DELETE) return empty bodies — that's fine.
 		return raw, nil
 	}

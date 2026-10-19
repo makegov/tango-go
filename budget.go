@@ -178,6 +178,8 @@ type ListBudgetAccountsOptions struct {
 	AccountCategory string
 	// AccountCategoryIn matches any of the listed account categories (account_category__in).
 	AccountCategoryIn []string
+	// Agency is a Tango organization: a name, abbreviation, code or organization key (for example "EPA"). It matches the whole organization subtree, so a department includes its sub-agencies; join several with "|".
+	Agency string
 	// Search is a free-text search filter.
 	Search string
 	// Ordering is the server-side sort spec; prefix "-" for descending.
@@ -209,6 +211,7 @@ func (o *ListBudgetAccountsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "subfunction_code", o.SubfunctionCode)
 	setIfNotEmpty(q, "account_category", o.AccountCategory)
 	setIfNotEmpty(q, "account_category__in", strings.Join(o.AccountCategoryIn, ","))
+	setIfNotEmpty(q, "agency", o.Agency)
 	setIfNotEmpty(q, "search", o.Search)
 	setIfNotEmpty(q, "ordering", o.Ordering)
 	for k, v := range o.Extra {
