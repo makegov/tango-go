@@ -153,6 +153,45 @@ func Test429PopulatesRateLimitError(t *testing.T) {
 	}
 }
 
+func Test429LimitTypeFromDetail(t *testing.T) {
+	cases := []struct {
+		name   string
+		header string
+		body   string
+		want   string
+	}{
+		{"daily wait in hours and minutes", "", `{"detail": "Rate limit exceeded for daily. Please try again in 16 hours, 58 minutes.", "wait_in_seconds": 61080}`, "daily"},
+		{"daily wait of one minute", "", `{"detail": "Rate limit exceeded for daily. Please try again in 1 minute.", "wait_in_seconds": 60}`, "daily"},
+		{"burst wait in seconds", "", `{"detail": "Rate limit exceeded for burst. Please try again in 45 seconds.", "wait_in_seconds": 45}`, "burst"},
+		{"burst wait of one minute", "", `{"detail": "Rate limit exceeded for burst. Please try again in 1 minute.", "wait_in_seconds": 60}`, "burst"},
+		{"premium per-scope budget", "", `{"detail": "Rate limit exceeded for premium_daily. Please try again in 5 hours, 2 minutes.", "wait_in_seconds": 18120}`, "daily"},
+		{"unrecognised detail", "", `{"detail": "Too many requests.", "wait_in_seconds": null}`, ""},
+		{"no detail", "", `{"wait_in_seconds": 30}`, ""},
+		{"non-JSON body", "", `<html>429 Too Many Requests</html>`, ""},
+		{"empty body", "", ``, ""},
+		{"header wins over detail", "burst", `{"detail": "Rate limit exceeded for daily. Please try again in 16 hours, 58 minutes."}`, "burst"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				if tc.header != "" {
+					w.Header().Set("X-RateLimit-Type", tc.header)
+				}
+				w.WriteHeader(http.StatusTooManyRequests)
+				_, _ = w.Write([]byte(tc.body))
+			})
+			_, err := c.ListAgencies(context.Background(), nil)
+			var rle *RateLimitError
+			if !errors.As(err, &rle) {
+				t.Fatalf("expected *RateLimitError, got %T: %v", err, err)
+			}
+			if rle.LimitType != tc.want {
+				t.Errorf("LimitType = %q, want %q", rle.LimitType, tc.want)
+			}
+		})
+	}
+}
+
 func Test429IsRetried(t *testing.T) {
 	var calls int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -123,7 +123,7 @@ type ValidationError struct { *APIError }  // 400 (or client-side rejection)
 type RateLimitError  struct {              // 429
     *APIError
     RetryAfter int    // seconds; 0 when Retry-After absent or unparseable
-    LimitType  string // X-RateLimit-Type when present
+    LimitType  string // "daily" or "burst": X-RateLimit-Type, else the 429 detail; "" when unknown
 }
 type TimeoutError    struct { *APIError }  // client-side timeout; StatusCode == 0
 ```
