@@ -82,7 +82,7 @@ All 21 constants live in `shapes.go`. They mirror the `ShapeConfig.*` enums in `
 | `ShapeGrantsMinimal` | `ListGrants` | grant_id, opportunity_number, title, status, agency_code |
 | `ShapeIDVsMinimal` | `ListIDVs` | key, piid, award_date, recipient (name+UEI), value, obligated, idv_type |
 | `ShapeIDVsComprehensive` | `GetIDV` | full IDV envelope incl. competition, legislative_mandates, transactions, subawards summary |
-| `ShapeVehiclesMinimal` | `ListVehicles` | uuid, solicitation_identifier, program_acronym, organization, vehicle_type, totals |
+| `ShapeVehiclesMinimal` | `ListVehicles` | uuid, solicitation_identifier, program_acronym, organization, vehicle_type, counts (IDVs, holders, order winners, orders), totals |
 | `ShapeVehiclesComprehensive` | `GetVehicle` | full vehicle envelope incl. metrics |
 | `ShapeVehicleAwardeesMinimal` | `ListVehicleAwardees` | uuid, key, piid, award_date, order_count, obligations, recipient (name+UEI) |
 | `ShapeVehicleOrdersMinimal` | `ListVehicleOrders` | key, piid, award_date, obligated, value, description, recipient (name+UEI) |
