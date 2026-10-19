@@ -3,6 +3,8 @@ package tango
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 )
 
 // APIError is the base error type returned by the SDK for any HTTP-layer
@@ -86,10 +88,40 @@ type RateLimitError struct {
 	// RetryAfter is the server-suggested wait before retrying, in seconds.
 	// 0 when the Retry-After header is absent or unparseable.
 	RetryAfter int
-	// LimitType is the value of X-RateLimit-Type when set by the server
-	// (used to distinguish per-minute / per-hour / per-day buckets). Empty
-	// when absent.
+	// LimitType is which limit was hit: "daily" or "burst".
+	// It comes from the X-RateLimit-Type header when the server sends one, otherwise from the rate named in the 429 body's detail ("Rate limit exceeded for daily. ...").
+	// A premium endpoint's per-scope daily budget reports "daily". Empty when neither names a limit.
 	LimitType string
+}
+
+// The API names the tripped rate in its 429 detail: "Rate limit exceeded for daily. Please try again in 16 hours, 58 minutes."
+var (
+	rateNamePattern = regexp.MustCompile(`(?i)exceeded for ([\w-]+)`)
+	dayWordPattern  = regexp.MustCompile(`\bday\b`)
+)
+
+// limitTypeFromBody returns "daily" or "burst" from a decoded 429 body's detail, or "" when it names neither.
+func limitTypeFromBody(data any) string {
+	obj, ok := data.(map[string]any)
+	if !ok {
+		return ""
+	}
+	detail, ok := obj["detail"].(string)
+	if !ok || detail == "" {
+		return ""
+	}
+	// Read the rate's name, not the whole sentence: a daily lockout's wait reads "16 hours, 58 minutes", which a match on "minute" would take for burst.
+	text := strings.ToLower(detail)
+	if m := rateNamePattern.FindStringSubmatch(detail); m != nil {
+		text = strings.ToLower(m[1])
+	}
+	switch {
+	case strings.Contains(text, "daily") || dayWordPattern.MatchString(text):
+		return "daily"
+	case strings.Contains(text, "burst") || strings.Contains(text, "minute"):
+		return "burst"
+	}
+	return ""
 }
 
 // Error implements the error interface.

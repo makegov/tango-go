@@ -279,6 +279,10 @@ func (c *Client) attempt(ctx context.Context, spec requestSpec) ([]byte, error) 
 		}}
 	case 429:
 		retryAfter := parseRetryAfter(resp.Header)
+		limitType := resp.Header.Get(rateLimitTypeHdr)
+		if limitType == "" {
+			limitType = limitTypeFromBody(decoded)
+		}
 		return nil, &RateLimitError{
 			APIError: &APIError{
 				StatusCode:   429,
@@ -286,7 +290,7 @@ func (c *Client) attempt(ctx context.Context, spec requestSpec) ([]byte, error) 
 				ResponseData: decoded,
 			},
 			RetryAfter: int(retryAfter.Seconds()),
-			LimitType:  resp.Header.Get(rateLimitTypeHdr),
+			LimitType:  limitType,
 		}
 	default:
 		msg := fmt.Sprintf("API request failed with status %d", resp.StatusCode)
