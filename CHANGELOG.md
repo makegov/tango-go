@@ -7,6 +7,8 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-19
+
 Catches the SDK up to Tango API 5.11.0, matching tango-python 1.18.1.
 
 ### Added
