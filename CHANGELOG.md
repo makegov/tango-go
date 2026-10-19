@@ -7,6 +7,8 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-19
+
 ### Fixed
 
 - **`RateLimitError.LimitType` was always empty.** It was read only from an `X-RateLimit-Type` header the Tango API does not send. It is now taken from the rate the 429's `detail` names, so `Rate limit exceeded for daily. Please try again in 16 hours, 58 minutes.` reports `daily` and `Rate limit exceeded for burst. Please try again in 45 seconds.` reports `burst`, matching tango-python. A premium endpoint's per-endpoint daily budget reports `daily`. An `X-RateLimit-Type` header still wins if the server sends one, and `LimitType` stays empty when the 429 names neither limit.

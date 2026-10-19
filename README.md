@@ -4,7 +4,7 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/makegov/tango-go.svg)](https://pkg.go.dev/github.com/makegov/tango-go)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **In development — v0.3.0.** Pre-1.0. The public API may shift before v1.0.0. Pin to a specific tag if you depend on this in production.
+> **In development — v0.3.1.** Pre-1.0. The public API may shift before v1.0.0. Pin to a specific tag if you depend on this in production.
 
 Official Go SDK for the [Tango API](https://tango.makegov.com) — federal contracts, IDVs, entities, opportunities, grants, vehicles, and more, with dynamic response shaping so you fetch only the fields you need.
 
