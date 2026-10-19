@@ -34,7 +34,11 @@ type ListIDVsOptions struct {
 	Search                 string
 	SetAside               string
 	SolicitationIdentifier string
-	UEI                    string
+	// UEI matches the recipient's UEI; join several with "|" for OR, up to 500 (Tango API 5.11.0 and later).
+	UEI string
+	// CommercialItemAcquisitionProcedures filters by the FPDS commercial item acquisition procedures code, case-insensitive: "A" (commercial products/services), "B" (products or services pursuant to FAR 12.102(f)), "C" (services pursuant to FAR 12.102(g)), "D" (commercial procedures not used) or "E" (DoD Section 803 Commercial Solutions Opening).
+	// Join codes with "|" for OR (for example "A|E"); an unknown or multi-character code matches nothing. Tango API 5.10.0 and later.
+	CommercialItemAcquisitionProcedures string
 
 	Extra map[string]any
 }
@@ -70,6 +74,7 @@ func (o *ListIDVsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "set_aside", o.SetAside)
 	setIfNotEmpty(q, "solicitation_identifier", o.SolicitationIdentifier)
 	setIfNotEmpty(q, "uei", o.UEI)
+	setIfNotEmpty(q, "commercial_item_acquisition_procedures", o.CommercialItemAcquisitionProcedures)
 	for k, v := range o.Extra {
 		q.Set(k, valueToString(v))
 	}

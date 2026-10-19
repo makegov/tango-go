@@ -208,3 +208,86 @@ func TestListOptionsFlatLists(t *testing.T) {
 	})
 	assertQueryContains(t, capturedURL, map[string]string{"flat": "true", "flat_lists": "true"}, nil)
 }
+
+func TestListResponseCarriesMetaAndAgencyDiagnostics(t *testing.T) {
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"count":1,"results":[{"k":"a"}],"meta":{
+			"resolved_filters":{
+				"awarding_agency":[
+					{"token":"HUD","resolved":{"key":"org-1","name":"Department of Housing and Urban Development"},"matched_by":"alias"},
+					{"token":"NOTANAGENCY","resolved":null}
+				],
+				"funding_agency":[{"token":"9700","resolved":{"key":"org-2","name":"Department of Defense"},"matched_by":"code"}],
+				"malformed":"skip me"
+			},
+			"warnings":["Agency filter 'awarding_agency': 'NOTANAGENCY' did not match any organization and was ignored.", 7]
+		}}`))
+	})
+	resp, err := c.ListContracts(context.Background(), &ListContractsOptions{AwardingAgency: "HUD|NOTANAGENCY", FundingAgency: "9700"})
+	if err != nil {
+		t.Fatalf("ListContracts: %v", err)
+	}
+
+	entries := resp.Meta["resolved_filters"].(map[string]any)["awarding_agency"].([]any)
+	if got := entries[0].(map[string]any)["matched_by"]; got != "alias" {
+		t.Errorf("matched_by: want alias, got %v", got)
+	}
+	if _, ok := entries[1].(map[string]any)["matched_by"]; ok {
+		t.Error("an unresolved entry has no matched_by")
+	}
+
+	if got := resp.AgencyWarnings(); len(got) != 1 || !strings.Contains(got[0], "NOTANAGENCY") {
+		t.Errorf("AgencyWarnings: %v", got)
+	}
+	unresolved := resp.UnresolvedAgencyTokens()
+	if len(unresolved) != 1 || len(unresolved["awarding_agency"]) != 1 || unresolved["awarding_agency"][0] != "NOTANAGENCY" {
+		t.Errorf("UnresolvedAgencyTokens: %v", unresolved)
+	}
+	resolved := resp.ResolvedAgencies()
+	if resolved["awarding_agency"][0]["name"] != "Department of Housing and Urban Development" || resolved["funding_agency"][0]["key"] != "org-2" || len(resolved) != 2 {
+		t.Errorf("ResolvedAgencies: %v", resolved)
+	}
+}
+
+func TestAgencyDiagnosticsAreEmptyWithoutMeta(t *testing.T) {
+	c, _ := newTestClient(t, emptyListHandler)
+	resp, err := c.ListContracts(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("ListContracts: %v", err)
+	}
+	if resp.Meta != nil || resp.AgencyWarnings() != nil || len(resp.UnresolvedAgencyTokens()) != 0 || len(resp.ResolvedAgencies()) != 0 {
+		t.Errorf("want empty diagnostics, got meta=%v", resp.Meta)
+	}
+	var nilResp *PaginatedResponse[Record]
+	if nilResp.AgencyWarnings() != nil || len(nilResp.UnresolvedAgencyTokens()) != 0 || len(nilResp.ResolvedAgencies()) != 0 {
+		t.Error("a nil response should report no diagnostics")
+	}
+}
+
+func TestListResponseCountTypeComesFromItsOwnHeader(t *testing.T) {
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if v := r.URL.Query().Get("count_type"); v != "" {
+			w.Header().Set("X-Results-CountType", v)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"count":1000,"results":[{"k":"a"}]}`))
+	})
+	ctx := context.Background()
+
+	approx, err := c.ListContracts(ctx, &ListContractsOptions{Extra: map[string]any{"count_type": "Approximate"}})
+	if err != nil {
+		t.Fatalf("ListContracts: %v", err)
+	}
+	exact, err := c.ListOpportunities(ctx, &ListOpportunitiesOptions{Extra: map[string]any{"count_type": "exact"}})
+	if err != nil {
+		t.Fatalf("ListOpportunities: %v", err)
+	}
+	none, err := c.ListNotices(ctx, nil)
+	if err != nil {
+		t.Fatalf("ListNotices: %v", err)
+	}
+	if approx.CountType != "approximate" || exact.CountType != "exact" || none.CountType != "" {
+		t.Errorf("CountType: got %q, %q, %q", approx.CountType, exact.CountType, none.CountType)
+	}
+}

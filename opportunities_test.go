@@ -377,3 +377,13 @@ func TestListForecastsForwardsID(t *testing.T) {
 	_, _ = c.ListForecasts(context.Background(), &ListForecastsOptions{ID: "123|456"})
 	assertQueryContains(t, capturedURL, map[string]string{"id": "123|456"}, nil)
 }
+
+func TestListOpportunitiesForwardsAwardFilters(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListOpportunities(context.Background(), &ListOpportunitiesOptions{Awarded: boolPtr(false), AwardeeUEI: "ABC123DEF456|ZZZ999YYY888"})
+	assertQueryContains(t, capturedURL, map[string]string{"awarded": "false", "awardee_uei": "ABC123DEF456|ZZZ999YYY888"}, nil)
+
+	_, _ = c.ListOpportunities(context.Background(), &ListOpportunitiesOptions{Search: "radar"})
+	assertQueryContains(t, capturedURL, map[string]string{"search": "radar"}, []string{"awarded", "awardee_uei"})
+}

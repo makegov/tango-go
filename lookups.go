@@ -113,11 +113,20 @@ func (c *Client) GetNAICS(ctx context.Context, code string) (Record, error) {
 	return getGeneric[Record](ctx, c, "/api/naics/"+pathEscape(code)+"/", nil)
 }
 
+// ListPSCOptions filters /api/psc/.
+type ListPSCOptions struct {
+	ListOptions
+
+	// HasAwards, when true, keeps only codes with contract award history. It is a pointer so that false reaches the server as a filter value.
+	HasAwards *bool
+}
+
 // ListPSC queries /api/psc/.
-func (c *Client) ListPSC(ctx context.Context, opts *ListOptions) (*PaginatedResponse[Record], error) {
+func (c *Client) ListPSC(ctx context.Context, opts *ListPSCOptions) (*PaginatedResponse[Record], error) {
 	q := url.Values{}
 	if opts != nil {
-		opts.applyTo(q)
+		opts.ListOptions.applyTo(q)
+		setIfNotNilBool(q, "has_awards", opts.HasAwards)
 	}
 	return listGeneric[Record](ctx, c, "/api/psc/", q)
 }

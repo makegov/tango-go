@@ -11,10 +11,10 @@ import (
 // `list_itdashboard_investments` kwargs.
 //
 // Filters are tier-gated by the API:
-//   - Free:      Search
+//   - Free:      Search, AgencyName, Agency, PreviousUII
 //   - Pro:       AgencyCode, TypeOfInvestment, UpdatedTimeAfter,
 //     UpdatedTimeBefore
-//   - Business+: AgencyName, CIORating, CIORatingMax, PerformanceRisk
+//   - Business+: CIORating, CIORatingMax, PerformanceRisk
 //
 // Hitting a gated filter on a lower tier returns a 403.
 //
@@ -27,6 +27,9 @@ type ListItDashboardOptions struct {
 	AgencyCode       string // accept string to allow numeric or text codes
 	AgencyName       string
 	TypeOfInvestment string
+
+	// Agency is a Tango organization: a name, abbreviation, code or organization key (for example "DOT"). It matches the whole organization subtree, so a department includes its sub-agencies; join several with "|".
+	Agency string
 
 	// Date / timestamp bounds (wire: ISO 8601).
 	UpdatedTimeAfter  string
@@ -55,6 +58,7 @@ func (o *ListItDashboardOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "previous_uii", o.PreviousUII)
 	setIfNotEmpty(q, "agency_code", o.AgencyCode)
 	setIfNotEmpty(q, "agency_name", o.AgencyName)
+	setIfNotEmpty(q, "agency", o.Agency)
 	setIfNotEmpty(q, "type_of_investment", o.TypeOfInvestment)
 	setIfNotEmpty(q, "updated_time_after", o.UpdatedTimeAfter)
 	setIfNotEmpty(q, "updated_time_before", o.UpdatedTimeBefore)

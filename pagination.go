@@ -29,7 +29,20 @@ type PaginatedResponse[T any] struct {
 	Previous string `json:"previous"`
 
 	// PageMetadata carries opaque page metadata for keyset endpoints.
+	// The API does not currently send a page_metadata key, so this is normally nil; read Meta instead.
 	PageMetadata map[string]any `json:"page_metadata,omitempty"`
+
+	// Meta is the response-level meta block the API attached to this page, or nil when it sent none (most responses).
+	// It currently carries agency-filter diagnostics: resolved_filters maps each agency filter to the organizations its "|"-separated tokens resolved to, and warnings lists notes about tokens that were dropped or matched loosely.
+	// Each resolved_filters entry that resolved also carries matched_by (Tango API 5.9.0+), saying how the token matched: "key" (an organization UUID), "code" (a 3-digit CGAC or 4-digit FPDS code), "name" (the organization's name, including a department's everyday name, a spelling variant or a rename), "alias" (an abbreviation or the organization's own alias) or "fuzzy" (a looser text match, worth checking against the resolved name).
+	// An entry that did not resolve has no matched_by.
+	// AgencyWarnings, UnresolvedAgencyTokens and ResolvedAgencies read it for you.
+	Meta map[string]any `json:"meta,omitempty"`
+
+	// CountType is "exact" or "approximate", read from this response's X-Results-CountType header; empty when the API did not send it.
+	// Past 1,000 matches the contract, IDV, opportunity and notice lists may return a query-planner estimate as Count, which can be well off.
+	// It comes from each response itself, so concurrent calls on one client cannot see each other's value the way LastResponseHeaders can.
+	CountType string `json:"-"`
 
 	// Cursor is the cursor extracted from Next on keyset-paginated
 	// endpoints. Pass it back via the Cursor option to fetch the next
@@ -47,6 +60,7 @@ type rawListResponse struct {
 	Next         *string         `json:"next"`
 	Previous     *string         `json:"previous"`
 	PageMetadata map[string]any  `json:"page_metadata"`
+	Meta         map[string]any  `json:"meta"`
 	Results      json.RawMessage `json:"results"`
 }
 
@@ -69,6 +83,7 @@ func decodePaginated[T any](raw []byte) (*PaginatedResponse[T], error) {
 		out.Previous = *envelope.Previous
 	}
 	out.PageMetadata = envelope.PageMetadata
+	out.Meta = envelope.Meta
 
 	if len(envelope.Results) > 0 {
 		if err := json.Unmarshal(envelope.Results, &out.Results); err != nil {
@@ -79,6 +94,85 @@ func decodePaginated[T any](raw []byte) (*PaginatedResponse[T], error) {
 		out.Count = len(out.Results)
 	}
 	return out, nil
+}
+
+// AgencyWarnings returns the warnings the API raised about agency filters on this request, or nil when there were none.
+//
+// A non-empty result means part of an agency filter did not apply, so a small or empty Results is not evidence that no such records exist.
+func (p *PaginatedResponse[T]) AgencyWarnings() []string {
+	if p == nil || p.Meta == nil {
+		return nil
+	}
+	raw, ok := p.Meta["warnings"].([]any)
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, w := range raw {
+		if s, ok := w.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// UnresolvedAgencyTokens returns the agency tokens that matched no organization, keyed by filter name; empty when everything resolved.
+//
+// Use it to fail loudly rather than treat a silently narrowed result set as an answer.
+func (p *PaginatedResponse[T]) UnresolvedAgencyTokens() map[string][]string {
+	out := map[string][]string{}
+	for name, entries := range p.resolvedFilterEntries() {
+		for _, entry := range entries {
+			token, ok := entry["token"].(string)
+			if !ok {
+				continue
+			}
+			if resolved, present := entry["resolved"]; !present || resolved == nil {
+				out[name] = append(out[name], token)
+			}
+		}
+	}
+	return out
+}
+
+// ResolvedAgencies returns the organization each agency token resolved to, keyed by filter name; empty when nothing resolved.
+//
+// Agency resolution is fuzzy, so a token can match an organization the caller did not intend and scope the query to that subtree.
+// Checking the resolved name (and each entry's matched_by in Meta) is the only way to catch that client-side, since nothing was dropped.
+func (p *PaginatedResponse[T]) ResolvedAgencies() map[string][]map[string]any {
+	out := map[string][]map[string]any{}
+	for name, entries := range p.resolvedFilterEntries() {
+		for _, entry := range entries {
+			if org, ok := entry["resolved"].(map[string]any); ok {
+				out[name] = append(out[name], org)
+			}
+		}
+	}
+	return out
+}
+
+// resolvedFilterEntries reads meta.resolved_filters, skipping anything malformed.
+func (p *PaginatedResponse[T]) resolvedFilterEntries() map[string][]map[string]any {
+	out := map[string][]map[string]any{}
+	if p == nil || p.Meta == nil {
+		return out
+	}
+	filters, ok := p.Meta["resolved_filters"].(map[string]any)
+	if !ok {
+		return out
+	}
+	for name, v := range filters {
+		list, ok := v.([]any)
+		if !ok {
+			continue
+		}
+		for _, e := range list {
+			if entry, ok := e.(map[string]any); ok {
+				out[name] = append(out[name], entry)
+			}
+		}
+	}
+	return out
 }
 
 func extractCursor(raw string) string {

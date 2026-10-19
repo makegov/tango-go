@@ -373,3 +373,67 @@ func TestSingletonGettersForwardShapeNotPagination(t *testing.T) {
 		})
 	}
 }
+
+func TestListContractsForwardsCommercialItemAcquisitionProceduresAndPipedUEIs(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListContracts(context.Background(), &ListContractsOptions{
+		CommercialItemAcquisitionProcedures: "e",
+		RecipientUEI:                        "ABC123DEF456|ZZZ999YYY888",
+	})
+	assertQueryContains(t, capturedURL, map[string]string{
+		"commercial_item_acquisition_procedures": "e",
+		"uei":                                    "ABC123DEF456|ZZZ999YYY888",
+	}, nil)
+}
+
+func TestObligationsByFiscalYear(t *testing.T) {
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"count":3,"results":[
+			{"key":"C1","obligations_by_fiscal_year":[{"fiscal_year":2024,"obligated":1500.25},{"fiscal_year":2025,"obligated":-20.5,"note":"x"}]},
+			{"key":"IDV1","obligations_by_fiscal_year":null},
+			{"key":"C2"}
+		]}`))
+	})
+	resp, err := c.ListContracts(context.Background(), &ListContractsOptions{
+		ListOptions: ListOptions{Shape: "key,obligations_by_fiscal_year(fiscal_year,obligated)"},
+	})
+	if err != nil {
+		t.Fatalf("ListContracts: %v", err)
+	}
+
+	years, err := ObligationsByFiscalYear(resp.Results[0])
+	if err != nil {
+		t.Fatalf("ObligationsByFiscalYear: %v", err)
+	}
+	if len(years) != 2 || *years[0].FiscalYear != 2024 || *years[0].Obligated != 1500.25 || *years[1].FiscalYear != 2025 || *years[1].Obligated != -20.5 {
+		t.Fatalf("unexpected decode: %+v", years)
+	}
+	if years[1].Extra["note"] != "x" {
+		t.Errorf("unknown key should land in Extra, got %v", years[1].Extra)
+	}
+
+	for _, row := range resp.Results[1:] {
+		got, err := ObligationsByFiscalYear(row)
+		if err != nil || got != nil {
+			t.Errorf("%v: want nil, nil for a null or absent expand; got %v, %v", row["key"], got, err)
+		}
+	}
+}
+
+func TestObligationsByFiscalYearNarrowedShape(t *testing.T) {
+	got, err := ObligationsByFiscalYear(Record{"obligations_by_fiscal_year": []any{map[string]any{"fiscal_year": float64(2026)}}})
+	if err != nil {
+		t.Fatalf("ObligationsByFiscalYear: %v", err)
+	}
+	if len(got) != 1 || *got[0].FiscalYear != 2026 || got[0].Obligated != nil {
+		t.Fatalf("unexpected decode: %+v", got)
+	}
+}
+
+func TestObligationsByFiscalYearRejectsMalformedValue(t *testing.T) {
+	if _, err := ObligationsByFiscalYear(Record{"obligations_by_fiscal_year": "nope"}); err == nil {
+		t.Fatal("want an error for a non-list value")
+	}
+}

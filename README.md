@@ -244,6 +244,7 @@ The SDK exposes about 140 methods on `*Client` covering the public resources the
 | Budget accounts | `ListBudgetAccounts` | `GetBudgetAccount` | `IterateBudgetAccounts` |
 | Protests | `ListProtests` | `GetProtest` *(typed: `*ProtestRecord`)* | `IterateProtests` |
 | Contract appeals | `ListContractAppeals` | `GetContractAppeal` *(typed: `*ContractAppealRecord`)* | `IterateContractAppeals` |
+| Federal Register documents | `ListFederalRegisterDocuments` | `GetFederalRegisterDocument` *(by uuid)* | `IterateFederalRegisterDocuments` |
 | SLED opportunities / forecasts | `ListSledOpportunities` / `ListSledForecasts` | `GetSledOpportunity` / `GetSledForecast` | `IterateSledOpportunities` / `IterateSledForecasts` |
 | Exclusions | `ListExclusions` | `GetExclusion` | `IterateExclusions` |
 | DIBBS RFQs / RFPs / awards | `ListDibbsRfqs` / `ListDibbsRfps` / `ListDibbsAwards` | `GetDibbsRfq` / `GetDibbsRfp` / `GetDibbsAward` | `IterateDibbs…` |

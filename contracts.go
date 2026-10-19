@@ -2,6 +2,7 @@ package tango
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 	"strconv"
 )
@@ -44,14 +45,18 @@ type ListContractsOptions struct {
 	NAICS                  string
 	PSC                    string
 	Recipient              string
-	UEI                    string
-	SetAside               string
+	// UEI matches the recipient's UEI; join several with "|" for OR, up to 500 (Tango API 5.11.0 and later).
+	UEI      string
+	SetAside string
+	// CommercialItemAcquisitionProcedures filters by the FPDS commercial item acquisition procedures code, case-insensitive: "A" (commercial products/services), "B" (products or services pursuant to FAR 12.102(f)), "C" (services pursuant to FAR 12.102(g)), "D" (commercial procedures not used) or "E" (DoD Section 803 Commercial Solutions Opening).
+	// Join codes with "|" for OR (for example "A|E"); an unknown or multi-character code matches nothing. Tango API 5.10.0 and later.
+	CommercialItemAcquisitionProcedures string
 
 	// SDK-friendly aliases (mirror Node/Python)
 	NAICSCode     string // -> naics
 	PSCCode       string // -> psc
 	RecipientName string // -> recipient
-	RecipientUEI  string // -> uei
+	RecipientUEI  string // -> uei; accepts several UEIs joined by "|"
 	SetAsideType  string // -> set_aside
 
 	// Search + ordering
@@ -98,6 +103,7 @@ func (o *ListContractsOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "recipient", firstNonEmpty(o.RecipientName, o.Recipient))
 	setIfNotEmpty(q, "uei", firstNonEmpty(o.RecipientUEI, o.UEI))
 	setIfNotEmpty(q, "set_aside", firstNonEmpty(o.SetAsideType, o.SetAside))
+	setIfNotEmpty(q, "commercial_item_acquisition_procedures", o.CommercialItemAcquisitionProcedures)
 	setIfNotEmpty(q, "search", firstNonEmpty(o.Keyword, o.Search))
 
 	if o.Sort != "" {
@@ -218,4 +224,44 @@ func valueToString(v any) string {
 	default:
 		return ""
 	}
+}
+
+// FiscalYearObligation is one element of an award's obligations_by_fiscal_year expand: the award's obligations in one federal fiscal year.
+//
+// Both fields are pointers because a shape can name either leaf alone (for example obligations_by_fiscal_year(fiscal_year)).
+type FiscalYearObligation struct {
+	// FiscalYear is the federal fiscal year (October starts the next one).
+	FiscalYear *int `json:"fiscal_year,omitempty"`
+	// Obligated is the sum of the award's transaction obligations dated in that year, rounded to cents.
+	Obligated *float64 `json:"obligated,omitempty"`
+
+	// Extra captures fields the server adds that aren't in the typed surface yet.
+	Extra map[string]any `json:"-"`
+}
+
+// UnmarshalJSON catches forward-compatible fields into Extra.
+func (f *FiscalYearObligation) UnmarshalJSON(data []byte) error {
+	type alias FiscalYearObligation
+	return unmarshalWithExtra(data, (*alias)(f))
+}
+
+// ObligationsByFiscalYear decodes the obligations_by_fiscal_year expand (Tango API 5.11.0) from a contract, IDV, OTA or OTIDV row.
+// Request it with a shape such as "key,piid,obligations_by_fiscal_year(fiscal_year,obligated)"; years run oldest first.
+//
+// It returns nil when the row has no obligations_by_fiscal_year key (a shape that did not name it) or the value is null.
+// The value is always null on IDVs and OTIDVs, whose transactions report a running lifetime total rather than each action's obligation, and null on a contract or OTA with no dated transaction.
+func ObligationsByFiscalYear(row Record) ([]FiscalYearObligation, error) {
+	v, ok := row["obligations_by_fiscal_year"]
+	if !ok || v == nil {
+		return nil, nil
+	}
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	out := []FiscalYearObligation{}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }

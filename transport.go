@@ -114,6 +114,8 @@ type requestSpec struct {
 
 	// noRedirect stops the client at a 3xx and returns its Location header as the body instead of following it.
 	noRedirect bool
+	// respHeader, when set, receives the headers of the successful response, so a caller can read them without racing other requests on the shared client.
+	respHeader *http.Header
 }
 
 // do executes a single HTTP request with retries. The returned []byte is
@@ -243,6 +245,9 @@ func (c *Client) attempt(ctx context.Context, spec requestSpec) ([]byte, error) 
 	}
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		if spec.respHeader != nil {
+			*spec.respHeader = resp.Header.Clone()
+		}
 		// Some endpoints (DELETE) return empty bodies — that's fine.
 		return raw, nil
 	}
@@ -284,12 +289,40 @@ func (c *Client) attempt(ctx context.Context, spec requestSpec) ([]byte, error) 
 			LimitType:  resp.Header.Get(rateLimitTypeHdr),
 		}
 	default:
+		msg := fmt.Sprintf("API request failed with status %d", resp.StatusCode)
+		if reason := errorReason(decoded); reason != "" {
+			msg += ": " + reason
+		}
 		return nil, &APIError{
 			StatusCode:   resp.StatusCode,
-			Message:      fmt.Sprintf("API request failed with status %d", resp.StatusCode),
+			Message:      msg,
 			ResponseData: decoded,
 		}
 	}
+}
+
+// errorReason returns the server's own explanation from an error body, e.g. why a 403 refused the request, or "" when it has none.
+// The API sends either {"detail": "..."} or a structured body such as a tier gate's {"error": "...", "code": "tier_required"}, sometimes nested under "detail".
+func errorReason(data any) string {
+	obj, ok := data.(map[string]any)
+	if !ok {
+		return ""
+	}
+	for _, body := range []any{obj, obj["detail"]} {
+		switch b := body.(type) {
+		case string:
+			if b != "" {
+				return b
+			}
+		case map[string]any:
+			for _, key := range []string{"error", "message", "detail"} {
+				if s, ok := b[key].(string); ok && s != "" {
+					return s
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // buildURL resolves a path against baseURL and appends query params.

@@ -26,7 +26,8 @@ type ListOTAsOptions struct {
 	// Key matches the award key the detail endpoint takes; join several with "|".
 	Key       string
 	Recipient string
-	UEI       string
+	// UEI matches the recipient's UEI; join several with "|" for OR, up to 500 (Tango API 5.11.0 and later).
+	UEI string
 
 	// Dollar / fiscal-year bounds
 	FiscalYear    string
@@ -146,7 +147,8 @@ type ListOTIDVsOptions struct {
 	// Key matches the award key the detail endpoint takes; join several with "|".
 	Key       string
 	Recipient string
-	UEI       string
+	// UEI matches the recipient's UEI; join several with "|" for OR, up to 500 (Tango API 5.11.0 and later).
+	UEI string
 
 	FiscalYear    string
 	FiscalYearGte string

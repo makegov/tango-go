@@ -308,3 +308,11 @@ func TestBudgetSourceAnomaliesRejectsNonList(t *testing.T) {
 		t.Error("expected an error for a non-list source_anomalies")
 	}
 }
+
+func TestListBudgetAccountsForwardsAgency(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListBudgetAccounts(context.Background(), &ListBudgetAccountsOptions{Agency: "EPA|DOT"})
+	assertPathContains(t, capturedURL, "/api/budget/accounts/")
+	assertQueryContains(t, capturedURL, map[string]string{"agency": "EPA|DOT"}, []string{"agency_code"})
+}

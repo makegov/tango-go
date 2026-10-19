@@ -105,3 +105,10 @@ func TestListItDashboardForwardsPreviousUII(t *testing.T) {
 	_, _ = c.ListItDashboard(context.Background(), &ListItDashboardOptions{PreviousUII: "015-000000100"})
 	assertQueryContains(t, capturedURL, map[string]string{"previous_uii": "015-000000100"}, nil)
 }
+
+func TestListItDashboardForwardsAgency(t *testing.T) {
+	var capturedURL string
+	c, _ := newTestClient(t, captureURLHandler(&capturedURL))
+	_, _ = c.ListItDashboard(context.Background(), &ListItDashboardOptions{Agency: "DOT|DOE"})
+	assertQueryContains(t, capturedURL, map[string]string{"agency": "DOT|DOE"}, []string{"agency_name", "agency_code"})
+}

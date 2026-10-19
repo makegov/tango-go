@@ -28,6 +28,12 @@ type ListOpportunitiesOptions struct {
 	// OpportunityID matches the identifier the detail endpoint takes; join several with "|".
 	OpportunityID string
 
+	// Awarded keeps opportunities that have an award (true) or have none (false), whether the award was posted on the opportunity or linked to it from a separate award notice.
+	// It searches every opportunity rather than only active ones. Tango API 5.5.0 and later.
+	Awarded *bool
+	// AwardeeUEI matches the awardee's UEI, case-insensitive; join several with "|". It searches every opportunity rather than only active ones. Tango API 5.5.0 and later.
+	AwardeeUEI string
+
 	Extra map[string]any
 }
 
@@ -54,6 +60,8 @@ func (o *ListOpportunitiesOptions) toQuery() url.Values {
 	setIfNotEmpty(q, "set_aside", o.SetAside)
 	setIfNotEmpty(q, "opportunity_id", o.OpportunityID)
 	setIfNotEmpty(q, "solicitation_number", o.SolicitationNumber)
+	setIfNotNilBool(q, "awarded", o.Awarded)
+	setIfNotEmpty(q, "awardee_uei", o.AwardeeUEI)
 	for k, v := range o.Extra {
 		q.Set(k, valueToString(v))
 	}
