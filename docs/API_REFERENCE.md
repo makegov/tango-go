@@ -43,6 +43,7 @@ if page.CountType == "approximate" {
 - [IDVs](#idvs) (+ sub-resources)
 - [OTAs / OTIDVs](#otas--otidvs)
 - [Subawards](#subawards)
+- [Financial-assistance awards](#financial-assistance-awards) (+ sub-resources)
 - [Vehicles](#vehicles) (+ sub-resources)
 - [Entities](#entities) (+ sub-resources)
 - [Opportunities / Notices / Forecasts / Grants](#opportunities--notices--forecasts--grants)
@@ -374,6 +375,62 @@ OTAs (Other Transaction Authority awards) and OTIDVs (umbrella OT agreements wit
 ### `GetSubaward(ctx, key string, *GetEntityOptions) (Record, error)`
 
 `GET /api/subawards/{key}/`. A single subaward record. Validates `key` non-empty client-side.
+
+---
+
+## Financial-assistance awards
+
+USAspending financial-assistance awards, split across four endpoints by the GSDM assistance type of the award's latest action. All four take the same filters, shapes and sub-routes, so each group gets the same five methods:
+
+| Group | Endpoint | Assistance types | Methods |
+| --- | --- | --- | --- |
+| Grants | `/api/assistance/grants/` | `F001`, `F002` | `ListAssistanceGrants`, `IterateAssistanceGrants`, `GetAssistanceGrant`, `ListAssistanceGrantTransactions`, `ListAssistanceGrantListings` |
+| Loans | `/api/assistance/loans/` | `F003`, `F004` | `ListAssistanceLoans`, `IterateAssistanceLoans`, `GetAssistanceLoan`, `ListAssistanceLoanTransactions`, `ListAssistanceLoanListings` |
+| Direct payments | `/api/assistance/direct_payments/` | `F006`, `F007` | `ListAssistanceDirectPayments`, `IterateAssistanceDirectPayments`, `GetAssistanceDirectPayment`, `ListAssistanceDirectPaymentTransactions`, `ListAssistanceDirectPaymentListings` |
+| Other | `/api/assistance/other/` | `F005`, `F008`–`F010`, `-1` | `ListAssistanceOther`, `IterateAssistanceOther`, `GetAssistanceOther`, `ListAssistanceOtherTransactions`, `ListAssistanceOtherListings` |
+
+> **Grant awards are not grant opportunities.** `ListGrants` serves `/api/grants/`, the Grants.gov funding announcements you can apply for. `ListAssistanceGrants` serves money already obligated to a recipient. Filter by `FundingOpportunityNumber` to find the awards made under an opportunity.
+
+### `ListAssistanceGrants(ctx, *ListAssistanceAwardsOptions) (*PaginatedResponse[Record], error)`
+
+The list methods share `ListAssistanceAwardsOptions`, which embeds `ListOptions` and names every filter the API takes:
+
+- Identifiers: `Key`, `FAIN` (non-aggregate records), `URI` (aggregate records), `FundingOpportunityNumber`.
+- Recipients: `UEI` (exact), `Recipient` (name or UEI, covering recipients without a UEI too).
+- Agencies: `AwardingAgency`, `FundingAgency`.
+- Programs and types: `CFDANumber` (the award's **primary** listing only), `AssistanceType`, `RecordType` (`"1"` aggregate, `"2"` non-aggregate, `"3"` PII-redacted individual), `BusinessFundsIndicator` (`"NON"` / `"REC"`), `DisasterEmergencyFundCode`.
+- Dates and fiscal years: `AwardDate[Gte/Lte]`, `FiscalYear[Gte/Lte]`, `PopStartDate[Gte/Lte]`, `PopEndDate[Gte/Lte]` (all wire-format strings).
+- Place of performance: `PopState`, `PopCountry` (ISO 3166 alpha-3), `PopZip`.
+- Dollars: `ObligatedGte`, `ObligatedLte`.
+- `Search`, `Ordering` (`award_date`, `obligated` or `pragmatic_obligations`, `-` for descending; default `-award_date`), `Joiner`, and `Extra` for anything else.
+
+Most identifier, program and place filters take several values joined with `|` for OR. The lists page by cursor only, so leave `Page` unset and use the iterator or the response's `Cursor`. The API rejects an unknown query parameter with a `400`.
+
+```go
+page, err := client.ListAssistanceGrants(ctx, &tango.ListAssistanceAwardsOptions{
+    ListOptions: tango.ListOptions{Limit: 10},
+    CFDANumber:  "93.778",
+    Ordering:    "-obligated",
+})
+```
+
+To compare dollars across the four groups, order by `pragmatic_obligations`: it is the obligation on grants and payments and the subsidy cost on loans.
+
+### `GetAssistanceGrant(ctx, key string, *GetEntityOptions) (*AssistanceAwardRecord, error)`
+
+`GET /api/assistance/grants/{key}/` (and the `Loan`, `DirectPayment` and `Other` counterparts). Validates `key` non-empty client-side. Returns a typed `*AssistanceAwardRecord` whose named fields are the default shape: `Key`, `FAIN`, `URI`, `AwardDate`, `FiscalYear`, `AssistanceType` (`Code`, `Description`), `RecordType`, `CFDANumber`, `AssistanceListing` (`Number`, `Title`), `Title`, `Obligated`, `PragmaticObligations`, `FaceValueOfLoan`, `LoanSubsidyCost`, `AwardingOffice` / `FundingOffice` (`*AwardOffice`), `Recipient` (`*AssistanceRecipient`), `PlaceOfPerformance` and `PeriodOfPerformance`. Every field is a pointer, so nil means absent or null. Anything a `Shape` adds beyond the default (`summary`, `listings(...)`, `obligations_by_fiscal_year(...)`, …) lands in `Extra`; `tango.ObligationsByFiscalYear(award.Extra)` decodes the last one.
+
+- A **retired key** resolves to the award that now carries it in `former_award_keys`, with its current key in the body; the sub-routes accept retired keys too.
+- An award lives under **one endpoint** at a time. If its latest action's assistance type moves to another group, the award moves with the same key and the old URL returns `404` (`*NotFoundError`).
+- `Recipient` is nil on aggregate and PII-redacted records (record types `"1"` and `"3"`).
+
+### `ListAssistanceGrantTransactions(ctx, key string, *AssistanceSubresourceOptions) (*PaginatedResponse[AssistanceTransaction], error)`
+
+`GET /api/assistance/grants/{key}/transactions/`. The award's transactions, latest first, as typed `AssistanceTransaction` rows. `AssistanceSubresourceOptions` carries only `Page` and `Limit` (default 100, max 500), because the route rejects a shape or filter with a `400`. A key that names no award returns an empty page rather than a `404`.
+
+### `ListAssistanceGrantListings(ctx, key string, *AssistanceSubresourceOptions) (*PaginatedResponse[AssistanceAwardListing], error)`
+
+`GET /api/assistance/grants/{key}/listings/`. The award's money broken out by assistance listing, primary listing first (`IsPrimary`), as typed `AssistanceAwardListing` rows. `Page` and `Limit` (default 10, max 100).
 
 ---
 

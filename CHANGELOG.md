@@ -7,6 +7,20 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Financial-assistance awards** (Tango API 5.12.0): USAspending grants, loans, direct payments and other assistance, over `/api/assistance/grants/`, `/api/assistance/loans/`, `/api/assistance/direct_payments/` and `/api/assistance/other/`. Each group gets a `List…` / `Iterate…` / `Get…` trio plus its two sub-routes: `ListAssistanceGrants`, `IterateAssistanceGrants`, `GetAssistanceGrant`, `ListAssistanceGrantTransactions` and `ListAssistanceGrantListings`, and the same for `Loan(s)`, `DirectPayment(s)` and `Other`.
+
+  The four lists share `ListAssistanceAwardsOptions`, which names every filter the API takes: the award filters assistance shares with contracts (`Key`, `UEI`, `Recipient`, `AwardingAgency`, `FundingAgency`, the award-date, fiscal-year and period-of-performance ranges, `ObligatedGte` / `ObligatedLte`, `Search`, `Ordering`) plus `FAIN`, `URI`, `CFDANumber`, `AssistanceType`, `RecordType`, `BusinessFundsIndicator`, `DisasterEmergencyFundCode`, `FundingOpportunityNumber`, `PopState`, `PopCountry`, `PopZip` and `Joiner`. The lists page by cursor only. Grant awards are not the grant opportunities `ListGrants` serves.
+
+  `Get…` returns a typed `*AssistanceAwardRecord` whose fields are the default shape, with nested `AssistanceTypeRef`, `AssistanceListingRef`, `AwardOffice`, `AssistanceRecipient`, `AssistancePlaceOfPerformance` and `AssistancePeriodOfPerformance`; anything a shape adds lands in `Extra`. A shape naming the bare `assistance_type` leaf, which the API returns as a code string rather than an object, fills `AssistanceType.Code`. A retired key resolves to the award that now carries it.
+
+  The sub-routes return typed rows (`AssistanceTransaction`, `AssistanceAwardListing`) and take `AssistanceSubresourceOptions` (`Page`, `Limit`) rather than `ListOptions`, because they reject a shape or filter with a 400.
+
+### Changed
+
+- `ObligationsByFiscalYear` documents that it also decodes the `obligations_by_fiscal_year(...)` expand on an assistance award row or `AssistanceAwardRecord.Extra`.
+
 ## [0.3.1] - 2026-10-19
 
 ### Fixed

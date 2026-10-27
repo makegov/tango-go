@@ -30,6 +30,8 @@ github.com/makegov/tango-go            (package tango)
 ├── business_types.go      # ListBusinessTypes + GetBusinessType
 ├── mas_sins.go            # ListMasSins + GetMasSin
 ├── assistance_listings.go # ListAssistanceListings + GetAssistanceListing
+├── assistance_awards.go   # Assistance grants / loans / direct payments / other + transactions + listings
+├── assistance_award_models.go # AssistanceAwardRecord, AssistanceTransaction, AssistanceAwardListing
 ├── otas.go                # OTAs / OTIDVs / OTIDV Awards (+ iterators)
 ├── protests.go            # Protests (typed *ProtestRecord on GetProtest)
 ├── contract_appeals.go    # Contract appeals (typed *ContractAppealRecord)
@@ -73,6 +75,9 @@ A small hand-picked set of methods return typed structs where the sibling SDKs a
 | `GetAgency` | `*AgencyRecord` |
 | `GetProtest` | `*ProtestRecord` |
 | `GetContractAppeal` | `*ContractAppealRecord` |
+| `GetAssistanceGrant` / `Loan` / `DirectPayment` / `Other` | `*AssistanceAwardRecord` |
+| `ListAssistance{Grant,Loan,DirectPayment,Other}Transactions` | `*PaginatedResponse[AssistanceTransaction]` |
+| `ListAssistance{Grant,Loan,DirectPayment,Other}Listings` | `*PaginatedResponse[AssistanceAwardListing]` |
 | `GetDepartment` | `*DepartmentRecord` |
 | `Resolve` | `*ResolveResult` (with `[]ResolveCandidate`) |
 | `Validate` | `*ValidateResult` |

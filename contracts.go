@@ -245,7 +245,7 @@ func (f *FiscalYearObligation) UnmarshalJSON(data []byte) error {
 	return unmarshalWithExtra(data, (*alias)(f))
 }
 
-// ObligationsByFiscalYear decodes the obligations_by_fiscal_year expand (Tango API 5.11.0) from a contract, IDV, OTA or OTIDV row.
+// ObligationsByFiscalYear decodes the obligations_by_fiscal_year expand (Tango API 5.11.0) from a contract, IDV, OTA or OTIDV row, or from a financial-assistance award row (an assistance list Record, or AssistanceAwardRecord.Extra).
 // Request it with a shape such as "key,piid,obligations_by_fiscal_year(fiscal_year,obligated)"; years run oldest first.
 //
 // It returns nil when the row has no obligations_by_fiscal_year key (a shape that did not name it) or the value is null.

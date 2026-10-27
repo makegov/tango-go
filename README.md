@@ -241,6 +241,7 @@ The SDK exposes about 140 methods on `*Client` covering the public resources the
 | Notices | `ListNotices` | `GetNotice` | `IterateNotices` |
 | Forecasts | `ListForecasts` | `GetForecast` | `IterateForecasts` |
 | Grants | `ListGrants` | `GetGrant` | `IterateGrants` |
+| Financial-assistance awards _(grants, loans, direct payments, other)_ | `ListAssistanceGrants` / `Loans` / `DirectPayments` / `Other` | `GetAssistanceGrant` / `Loan` / `DirectPayment` / `Other` _(typed: `*AssistanceAwardRecord`)_ | `IterateAssistance…` |
 | Budget accounts | `ListBudgetAccounts` | `GetBudgetAccount` | `IterateBudgetAccounts` |
 | Protests | `ListProtests` | `GetProtest` *(typed: `*ProtestRecord`)* | `IterateProtests` |
 | Contract appeals | `ListContractAppeals` | `GetContractAppeal` *(typed: `*ContractAppealRecord`)* | `IterateContractAppeals` |
@@ -254,7 +255,7 @@ The SDK exposes about 140 methods on `*Client` covering the public resources the
 | NAICS / PSC | `ListNAICS` / `ListPSC` | `GetNAICS` / `GetPSC` | — |
 | Webhooks (CRUD) | `ListWebhookEndpoints` / `ListWebhookAlerts` | `Get…` / `Create…` / `Update…` / `Delete…` | — |
 
-Sub-resources and lookups are also covered: `ListEntityContracts` / `IDVs` / `OTAs` / `OTIDVs` / `Subawards` / `Lcats`, `GetEntityBudgetFlows`, `ListContractSubawards` / `Transactions`, `GetBudgetAccountQuarters` / `Recipients`, `GetSubaward`, `ListSledOpportunityRevisions`, `GetSledCoverage`, `GetEbuyAttachmentURL`, `GetEbuyAccess`, `ListIDVAwards` / `ChildIDVs` / `Transactions` / `Lcats`, `ListAgencyAwardingContracts` / `FundingContracts`, `ListVehicleAwardees` / `Orders`, `ListOTIDVAwards`, `ListGsaElibraryContracts`, `ListBusinessTypes`, `ListOffices`, `ListDepartments` *(deprecated)*, `ListMasSins`, `ListAssistanceListings`, `ListLcats`, plus all three metrics getters (`GetNAICSMetrics` / `GetPSCMetrics` / `GetEntityMetrics`) and the dispatcher `ListMetrics`. Meta: `Resolve`, `Validate`, `GetVersion`, `ListAPIKeys`. Webhook signing: `webhooks.Generate` / `Verify` / `Parse` / `VerifyRequest` / `Middleware`.
+Sub-resources and lookups are also covered: `ListEntityContracts` / `IDVs` / `OTAs` / `OTIDVs` / `Subawards` / `Lcats`, `GetEntityBudgetFlows`, `ListContractSubawards` / `Transactions`, `ListAssistance{Grant,Loan,DirectPayment,Other}Transactions` / `Listings`, `GetBudgetAccountQuarters` / `Recipients`, `GetSubaward`, `ListSledOpportunityRevisions`, `GetSledCoverage`, `GetEbuyAttachmentURL`, `GetEbuyAccess`, `ListIDVAwards` / `ChildIDVs` / `Transactions` / `Lcats`, `ListAgencyAwardingContracts` / `FundingContracts`, `ListVehicleAwardees` / `Orders`, `ListOTIDVAwards`, `ListGsaElibraryContracts`, `ListBusinessTypes`, `ListOffices`, `ListDepartments` *(deprecated)*, `ListMasSins`, `ListAssistanceListings`, `ListLcats`, plus all three metrics getters (`GetNAICSMetrics` / `GetPSCMetrics` / `GetEntityMetrics`) and the dispatcher `ListMetrics`. Meta: `Resolve`, `Validate`, `GetVersion`, `ListAPIKeys`. Webhook signing: `webhooks.Generate` / `Verify` / `Parse` / `VerifyRequest` / `Middleware`.
 
 See [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) for full signatures, filter fields, and quirks per method.
 
