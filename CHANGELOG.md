@@ -7,6 +7,10 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **DIBBS `FSC` filter** (Tango API 5.13.0): `ListDibbsRfqsOptions`, `ListDibbsRfpsOptions` and `ListDibbsAwardsOptions` gain `FSC`, sent as `fsc`, filtering by Federal Supply Class (the first four digits of the NSN, e.g. `6515`). Several classes are OR'd with `|` (`6515|6530`), and the filter combines with every other filter. Each value must be exactly four digits; anything else returns `*ValidationError` (HTTP 400). `fsc` also works in `dibbs_rfq` and `dibbs_rfp` alert filter definitions.
+
 ## [0.3.1] - 2026-10-19
 
 ### Fixed
