@@ -728,15 +728,15 @@ Defense Logistics Agency solicitations and awards from the DLA Internet Bid Boar
 
 ### `ListDibbsRfqs(ctx, *ListDibbsRfqsOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/dibbs/rfqs/`. Filters: `Open *bool`, `NSN`, `PartNumber`, `Solicitation`, `PurchaseRequest`, `SetAside` (`"Y"` / `"N"`), `StatusCode`, `Organization`, `QuantityMin` / `QuantityMax`, `ReturnByDate[After/Before]`, `IssueDate[After/Before]`, `Search`, `Ordering`.
+`GET /api/dibbs/rfqs/`. Filters: `Open *bool`, `NSN`, `PartNumber`, `FSC`, `Solicitation`, `PurchaseRequest`, `SetAside` (`"Y"` / `"N"`), `StatusCode`, `Organization`, `QuantityMin` / `QuantityMax`, `ReturnByDate[After/Before]`, `IssueDate[After/Before]`, `Search`, `Ordering`.
 
 ### `ListDibbsRfps(ctx, *ListDibbsRfpsOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/dibbs/rfps/`. Filters: `Open *bool`, `NSN`, `PartNumber`, `Solicitation`, `BuyerCode`, `Organization`, `IssuedDate[After/Before]`, `ClosesDate[After/Before]`, `Search`, `Ordering`.
+`GET /api/dibbs/rfps/`. Filters: `Open *bool`, `NSN`, `PartNumber`, `FSC`, `Solicitation`, `BuyerCode`, `Organization`, `IssuedDate[After/Before]`, `ClosesDate[After/Before]`, `Search`, `Ordering`.
 
 ### `ListDibbsAwards(ctx, *ListDibbsAwardsOptions) (*PaginatedResponse[Record], error)`
 
-`GET /api/dibbs/awards/`. One row per award line item. Filters: `NSN`, `PartNumber`, `Solicitation`, `AwardNumber`, `DeliveryOrderNumber`, `PurchaseRequest`, `AwardeeCage`, `Entity`, `Organization`, `AwardDate[After/Before]`, `PostedDate[After/Before]`, `TotalContractPriceMin` / `TotalContractPriceMax`, `Search`, `Ordering`.
+`GET /api/dibbs/awards/`. One row per award line item. Filters: `NSN`, `PartNumber`, `FSC`, `Solicitation`, `AwardNumber`, `DeliveryOrderNumber`, `PurchaseRequest`, `AwardeeCage`, `Entity`, `Organization`, `AwardDate[After/Before]`, `PostedDate[After/Before]`, `TotalContractPriceMin` / `TotalContractPriceMax`, `Search`, `Ordering`.
 
 > **Order-level money repeats per line.** `total_contract_price` is the whole order's price, carried on every line item of that order, so it does not sum across rows.
 

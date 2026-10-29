@@ -18,9 +18,11 @@ type ListDibbsRfqsOptions struct {
 	// A pointer so that false is a real filter value rather than an absent one.
 	Open *bool
 
-	// NSN, PartNumber, PurchaseRequest and StatusCode accept several values joined with "|".
+	// NSN, PartNumber, FSC, PurchaseRequest and StatusCode accept several values joined with "|".
+	// FSC is the four-digit Federal Supply Class, the first four digits of the NSN; any other value is a 400.
 	NSN             string
 	PartNumber      string
+	FSC             string
 	Solicitation    string
 	PurchaseRequest string
 	// SetAside is "Y" or "N".
@@ -54,6 +56,7 @@ func (o *ListDibbsRfqsOptions) toQuery() url.Values {
 	setIfNotNilBool(q, "open", o.Open)
 	setIfNotEmpty(q, "nsn", o.NSN)
 	setIfNotEmpty(q, "part_number", o.PartNumber)
+	setIfNotEmpty(q, "fsc", o.FSC)
 	setIfNotEmpty(q, "solicitation", o.Solicitation)
 	setIfNotEmpty(q, "purchase_request", o.PurchaseRequest)
 	setIfNotEmpty(q, "set_aside", o.SetAside)
@@ -109,9 +112,11 @@ type ListDibbsRfpsOptions struct {
 	// Open filters on whether the solicitation still accepts offers today (its closes_date has not passed).
 	Open *bool
 
-	// NSN, PartNumber and BuyerCode accept several values joined with "|".
+	// NSN, PartNumber, FSC and BuyerCode accept several values joined with "|".
+	// FSC is the four-digit Federal Supply Class, the first four digits of the NSN; any other value is a 400.
 	NSN          string
 	PartNumber   string
+	FSC          string
 	Solicitation string
 	BuyerCode    string
 	Organization string
@@ -138,6 +143,7 @@ func (o *ListDibbsRfpsOptions) toQuery() url.Values {
 	setIfNotNilBool(q, "open", o.Open)
 	setIfNotEmpty(q, "nsn", o.NSN)
 	setIfNotEmpty(q, "part_number", o.PartNumber)
+	setIfNotEmpty(q, "fsc", o.FSC)
 	setIfNotEmpty(q, "solicitation", o.Solicitation)
 	setIfNotEmpty(q, "buyer_code", o.BuyerCode)
 	setIfNotEmpty(q, "organization", o.Organization)
@@ -188,8 +194,10 @@ func (c *Client) GetDibbsRfp(ctx context.Context, uuid string, opts *GetEntityOp
 type ListDibbsAwardsOptions struct {
 	ListOptions
 
+	// FSC is the four-digit Federal Supply Class, the first four digits of the NSN; several are joined with "|", and any other value is a 400.
 	NSN          string
 	PartNumber   string
+	FSC          string
 	Solicitation string
 	// AwardNumber is order-scoped: one award number spans every line item of the order.
 	AwardNumber         string
@@ -226,6 +234,7 @@ func (o *ListDibbsAwardsOptions) toQuery() url.Values {
 	o.ListOptions.applyTo(q)
 	setIfNotEmpty(q, "nsn", o.NSN)
 	setIfNotEmpty(q, "part_number", o.PartNumber)
+	setIfNotEmpty(q, "fsc", o.FSC)
 	setIfNotEmpty(q, "solicitation", o.Solicitation)
 	setIfNotEmpty(q, "award_number", o.AwardNumber)
 	setIfNotEmpty(q, "delivery_order_number", o.DeliveryOrderNumber)
