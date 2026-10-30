@@ -49,6 +49,7 @@ if page.CountType == "approximate" {
 - [Protests](#protests)
 - [Contract appeals](#contract-appeals)
 - [Federal Register](#federal-register)
+- [Award announcements](#award-announcements)
 - [State \& Local (SLED)](#state--local-sled)
 - [Exclusions](#exclusions)
 - [DIBBS](#dibbs)
@@ -623,6 +624,60 @@ doc, err := client.GetFederalRegisterDocument(ctx, page.Results[0]["uuid"].(stri
 ```
 
 Alerts on this resource use query type `federal_register` and deliver `alerts.federal_register.match`; see [`WEBHOOKS.md`](WEBHOOKS.md).
+
+---
+
+## Award announcements
+
+Federal award announcements from two sources, named on every row in `source` and `source_name` (Tango API 5.14.0+). The resource is available at every tier.
+
+- `official_release` rows are the awards of $7.5 million or more that the Department of War publishes in its daily contracts release, with the text as published.
+- `makegov_generated` rows cover new civilian IDVs of $25 million or more and every new OTA and OT IDV. They are written by MakeGov from FPDS data with a language model and **are not government text**.
+
+A generated announcement is dropped when an official release covers the same award.
+
+### `ListAwardAnnouncements(ctx, *ListAwardAnnouncementsOptions) (*PaginatedResponse[Record], error)`
+
+`GET /api/news/award_announcements/`. Filters, every one the endpoint accepts:
+
+- `Search`: full-text search over the title and text, where a title match ranks above a text match; wrap it in double quotes for a phrase.
+- `Source`: `AwardAnnouncementSourceOfficialRelease` or `AwardAnnouncementSourceMakeGovGenerated`.
+- `Agency`: the awarding organization, as a Tango agency name, abbreviation, code or organization key (for example `Navy`); join several with `|`.
+- `Component`: the DoD component as printed in the official release (for example `NAVY`), matched exactly but case-insensitively; join several with `|`. Generated announcements have no component.
+- `PublishedDate[After/Before]`, `AwardDate[After/Before]`: inclusive dates (`YYYY-MM-DD`).
+- `AmountMin`, `AmountMax`: inclusive bounds on the announced amount in US dollars. `value_kind` on each row says what kind of figure `amount` is.
+- `PIID`: a contract number named in the announcement, as printed or not (`N00019-25-C-0070` or `N0001925C0070`), since dashes and case are ignored; join several with `|`.
+- `Awardee`: case-insensitive substring of an awardee name, at least 3 characters; a shorter value returns `*ValidationError`.
+- `UEI`: exact UEI of an awardee. Official releases print no UEI, so this matches only where one was resolved.
+- `ActionType`, `AnnouncementType`: join several with `|`.
+- `Civilian`, `IsModification`, `IsMultipleAward` (all `*bool`).
+- `SmallBusiness *bool`: true keeps announcements with at least one small-business awardee, false keeps those whose awardees are stated not to be small. Generated announcements state neither, so they match neither value.
+- `IncludeWithdrawn *bool`: announcements DoD later withdrew are hidden from lists unless this is true.
+- `Ordering`: `published_date`, `amount` or `rank`, with `-` for descending. The default is `-published_date`, or `-rank` under `Search`. `rank` requires a non-empty `Search`. Descending `published_date` and `amount` sort rows with no value last.
+
+`ShapeAwardAnnouncementsMinimal` is the API's default list shape. It leaves out `text`, which can run past 16,000 characters; name `text` in `Shape` to get it on a list.
+
+### `IterateAwardAnnouncements(ctx, *ListAwardAnnouncementsOptions) *Iterator[Record]`
+
+Walk every announcement matching the options.
+
+### `GetAwardAnnouncement(ctx, announcementUUID string, *GetEntityOptions) (Record, error)`
+
+`GET /api/news/award_announcements/{uuid}/`. A withdrawn announcement stays retrievable here, with `is_withdrawn` set. The default shape is `ShapeAwardAnnouncementsComprehensive`, which carries `text` and two expands: `awardees(name,uei,location,small_business)` and `organization(organization_id,office_code,office_name,agency_code,agency_name,department_code,department_name)`.
+
+```go
+page, err := client.ListAwardAnnouncements(ctx, &tango.ListAwardAnnouncementsOptions{
+    Source:    tango.AwardAnnouncementSourceOfficialRelease,
+    AmountMin: "100000000",
+    Ordering:  "-amount",
+})
+if err != nil {
+    return err
+}
+row, err := client.GetAwardAnnouncement(ctx, page.Results[0]["uuid"].(string), nil)
+```
+
+Alerts on this resource use query type `award_announcement` and deliver `alerts.award_announcement.match`; see [`WEBHOOKS.md`](WEBHOOKS.md).
 
 ---
 
