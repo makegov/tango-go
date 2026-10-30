@@ -34,6 +34,7 @@ github.com/makegov/tango-go            (package tango)
 ├── protests.go            # Protests (typed *ProtestRecord on GetProtest)
 ├── contract_appeals.go    # Contract appeals (typed *ContractAppealRecord)
 ├── federal_register.go    # Federal Register documents
+├── award_announcements.go # Award announcements
 ├── sled.go                # State, local and education procurement
 ├── budget.go              # Budget accounts + quarters + recipients
 ├── exclusions.go          # SAM exclusions

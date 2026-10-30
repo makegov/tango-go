@@ -140,7 +140,7 @@ func (c *Client) GetWebhookAlert(ctx context.Context, id string) (*WebhookAlert,
 //
 // `Name`, `QueryType`, and a non-empty `Filters` map are required.
 // `QueryType` is SINGULAR (e.g. `"contract"`, not `"contracts"`).
-// Today it is one of opportunity, contract, idv, ota, otidv, entity, grant, forecast, exclusion, dibbs_rfq, dibbs_rfp, sled_opportunity, contract_appeal, federal_register or ebuy_request; ListWebhookEventTypes is the current authority, since a list written here can only go stale.
+// Today it is one of opportunity, contract, idv, ota, otidv, entity, grant, forecast, exclusion, dibbs_rfq, dibbs_rfp, sled_opportunity, contract_appeal, federal_register, award_announcement or ebuy_request; ListWebhookEventTypes is the current authority, since a list written here can only go stale.
 // For accounts with multiple webhook endpoints, set `Endpoint` to the
 // destination endpoint UUID; single-endpoint accounts may omit it.
 func (c *Client) CreateWebhookAlert(ctx context.Context, input WebhookAlertCreateInput) (*WebhookAlert, error) {

@@ -53,6 +53,18 @@ const (
 		"url,document_id,listing_url,listing_year," +
 		"first_listed_at,listed,text_status,text_char_count"
 
+	// ShapeAwardAnnouncementsMinimal — the API's default list shape for ListAwardAnnouncements.
+	//
+	// Deliberately does not name text, which can run past 16,000 characters.
+	ShapeAwardAnnouncementsMinimal = "uuid,source,source_name,source_url,published_date,award_date,title,amount," +
+		"value_kind,action_type,announcement_type,awardee_count,piids,is_modification," +
+		"is_multiple_award,is_withdrawn,awardees(*)"
+
+	// ShapeAwardAnnouncementsComprehensive — the API's default detail shape for GetAwardAnnouncement.
+	ShapeAwardAnnouncementsComprehensive = ShapeAwardAnnouncementsMinimal +
+		",source_record_id,text,obligated_at_award,award_kind,award_uuids,civilian," +
+		"component,contracting_activity,corrections,organization(*)"
+
 	// ShapeEbuyRequestsMinimal — the API's default shape for ListEbuyRequests.
 	ShapeEbuyRequestsMinimal = "rfq_id,request_type,title,schedule,sin,status,buyer_name,buyer_agency," +
 		"buyer_agency_code,reference_number,issue_date,close_date,attachment_count,link_count,last_seen"

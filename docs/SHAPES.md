@@ -81,6 +81,8 @@ All the constants live in `shapes.go`. They mirror the `ShapeConfig.*` enums in 
 | `ShapeProtestsMinimal` | `ListProtests` | case_id, case_number, title, source_system, outcome, filed_date |
 | `ShapeFederalRegisterMinimal` | `ListFederalRegisterDocuments` | uuid, document_number, publication_date, type, title, abstract, agencies, CFR references, comment and effective dates, URLs |
 | `ShapeFederalRegisterComprehensive` | `GetFederalRegisterDocument` | adds dates, pages, dockets, RINs, topics, corrections and presidential-document numbers; never `full_text` |
+| `ShapeAwardAnnouncementsMinimal` | `ListAwardAnnouncements` | uuid, source, source URL, dates, title, amount, value_kind, action and announcement types, awardee_count, piids, modification, multiple-award and withdrawn flags; never `text` |
+| `ShapeAwardAnnouncementsComprehensive` | `GetAwardAnnouncement` | adds `text`, obligated_at_award, award_kind, award_uuids, civilian, component, contracting_activity, corrections, `awardees(*)` and `organization(*)` |
 | `ShapeGrantsMinimal` | `ListGrants` | grant_id, opportunity_number, title, status, agency_code |
 | `ShapeIDVsMinimal` | `ListIDVs` | key, piid, award_date, recipient (name+UEI), value, obligated, idv_type |
 | `ShapeIDVsComprehensive` | `GetIDV` | full IDV envelope incl. competition, legislative_mandates, transactions, subawards summary |
